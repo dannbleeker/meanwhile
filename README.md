@@ -65,6 +65,17 @@ Sammenligner du en fil fra <https://meanwhile.retailforever.com/> med repoet,
 er den ene linje altså forskellig med vilje. Workflowet fejler, hvis
 pladsholderen mangler, så stemplingen ikke kan forsvinde ubemærket.
 
+### Tjek at en udgivelse er landet
+
+```bash
+git rev-parse HEAD:app | cut -c1-12                     # forventet build-id
+curl -s https://meanwhile.retailforever.com/sw.js | grep 'const BUILD'
+```
+
+De to skal stemme. Gør de det, har alle installerede apps den nye version
+næste gang, de er på forsiden. Er build-id'et uændret efter et push, ændrede
+du ikke noget i `app/` — og så skal ingen heller have en opdatering.
+
 ## Sådan opdaterer installerede apps sig selv
 
 Opdateringen sker stille, uden at spørge:
