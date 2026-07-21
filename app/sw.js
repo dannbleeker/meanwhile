@@ -13,9 +13,9 @@
                      stille i baggrunden og skifter til den, næste
                      gang appen er på forsiden.
 
-   Kører du lokalt uden stempling, står der bare "__BUILD__" —
-   det virker fint, men så opdager appen kun ændringer, hvis du
-   selv retter teksten herunder.
+   Kører du lokalt, står pladsholderen uændret. Det virker fint,
+   men så opdager appen kun en ændring, hvis du selv retter
+   teksten herunder.
 
    Brugerens data (brugte kort, favoritter, indstillinger) ligger i
    localStorage og bliver ALDRIG rørt af en opdatering — vi rydder
