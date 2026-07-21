@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Samtalekort</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffcbb0">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<!-- iOS startbilleder (splash) -->
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="splash/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/splash-1242x2208.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="splash/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/splash-1170x2532.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/splash-1284x2778.png">
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/splash-1179x2556.png">
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/splash-1290x2796.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Samtalekort">
+<script>
+  /* Sæt tema før siden tegnes, så splash/app ikke blinker lyst i mørk tilstand */
+  try {
+    var o = JSON.parse(localStorage.getItem("samtalekort:opt:v1") || "{}");
+    var dark = o.theme === "dark" || ((!o.theme || o.theme === "auto") && matchMedia("(prefers-color-scheme: dark)").matches);
+    if (dark) document.documentElement.classList.add("dark");
+  } catch (e) {}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     SAMTALEKORT — "Varm & legende" tema (PWA)
+     Rediger DATA-objektet nederst i <script> for at ændre indhold.
+     Ny version udgives via CACHE-tallet i sw.js — se den fil.
+     ============================================================ */
+
+  :root {
+    --bg-1: #fff1e9;
+    --bg-2: #ffe4ef;
+    --bg-3: #eae6ff;
+    --ink: #3a2f3a;
+    --ink-soft: #7c6a78;
+    --good: #2f9e6f;
+    --card-radius: 32px;
+    --shadow: 0 24px 60px -20px rgba(120, 70, 90, 0.45);
+    --shadow-soft: 0 10px 30px -12px rgba(120, 70, 90, 0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; width: 100%; max-width: 100%; overflow-x: hidden; }
+
+  body {
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(135deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+    background-attachment: fixed;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Dekorative baggrunds-pletter i et fast lag der klipper alt overløb væk */
+  .bg { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+  .bg::before, .bg::after {
+    content: ""; position: absolute; border-radius: 50%;
+    filter: blur(60px); opacity: 0.5;
+  }
+  .bg::before { width: 320px; height: 320px; background: #ffcbb0; top: -80px; left: -60px; }
+  .bg::after  { width: 380px; height: 380px; background: #d7c7ff; bottom: -120px; right: -80px; }
+
+  /* Splash / opstartsskærm */
+  .splash {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+    background: linear-gradient(135deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+    transition: opacity .5s ease;
+  }
+  .splash.hide { opacity: 0; pointer-events: none; }
+  .splash-logo { width: 108px; height: 108px; border-radius: 30px; box-shadow: var(--shadow); animation: splashPop .6s cubic-bezier(.22,.9,.32,1.2) both; }
+  .splash-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 30px; color: var(--ink); letter-spacing: .3px; animation: splashFade .6s ease .12s both; }
+  .splash-brand { position: absolute; right: 22px; bottom: calc(20px + env(safe-area-inset-bottom)); font-family: 'Fraunces', serif; font-weight: 500; font-size: 15px; letter-spacing: .5px; color: var(--ink-soft); opacity: .75; animation: splashFade .6s ease .3s both; }
+  @keyframes splashPop { from { transform: scale(.82); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes splashFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .splash-logo, .splash-title { animation: none !important; } }
+
+  .app {
+    position: relative; z-index: 1; flex: 1;
+    display: flex; flex-direction: column;
+    width: 100%; max-width: 640px; margin: 0 auto;
+    padding: calc(20px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
+  }
+
+  /* ---------- Topbar ---------- */
+  .topbar { display: flex; align-items: center; gap: 12px; min-height: 44px; margin-bottom: 8px; }
+  .brand { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; }
+  .brand span { font-size: 22px; }
+  .pill-btn {
+    border: none; background: rgba(255,255,255,0.72); backdrop-filter: blur(6px);
+    color: var(--ink); font-family: inherit; font-weight: 700; font-size: 15px;
+    padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: var(--shadow-soft); transition: transform .15s ease, background .15s ease;
+  }
+  .pill-btn:hover { background: #fff; }
+  .spacer { flex: 1; }
+
+  /* ============================================================
+     SKÆRM 1 — VALG AF SÆT
+     ============================================================ */
+  .home-head { margin: 6px 2px 20px; }
+  .home-head h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(30px, 8vw, 42px); line-height: 1.05; margin-bottom: 8px; }
+  .home-head p { color: var(--ink-soft); font-size: 16px; font-weight: 600; max-width: 34ch; }
+
+  .set-grid { display: grid; gap: 16px; }
+  .set-card {
+    position: relative; text-align: left; border: none; cursor: pointer;
+    font-family: inherit; color: var(--ink);
+    background: rgba(255,255,255,0.72); backdrop-filter: blur(8px);
+    border-radius: 26px; padding: 18px; box-shadow: var(--shadow-soft);
+    display: flex; gap: 16px; align-items: center; overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .set-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+  .set-card::before { content: ""; position: absolute; inset: 0; background: var(--set-accent, #ffd9c2); opacity: 0.16; z-index: 0; }
+  .set-thumb {
+    position: relative; z-index: 1; width: 72px; height: 72px; flex: 0 0 72px;
+    border-radius: 20px; background: var(--set-accent, #ffd9c2); background-size: cover; background-position: center;
+    display: grid; place-items: center; font-size: 34px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5);
+  }
+  .set-body { position: relative; z-index: 1; flex: 1; min-width: 0; }
+  .set-body h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 21px; margin-bottom: 3px; }
+  .set-body p { color: var(--ink-soft); font-size: 14.5px; font-weight: 600; line-height: 1.35; }
+  .set-body .set-meta-line { display: block; margin-top: 6px; font-size: 12.5px; font-weight: 800; color: var(--ink-soft); }
+  .set-body .set-meta-line b { color: var(--good); font-weight: 800; }
+  /* Usynlig knap der dækker hele feltet og åbner sættet */
+  .set-open { position: absolute; inset: 0; border: none; background: transparent; cursor: pointer; z-index: 2; border-radius: inherit; }
+  /* "?"-knap: træk et tilfældigt kort fra samlingen */
+  .set-shuffle {
+    position: relative; z-index: 3; flex: 0 0 auto; margin-left: auto;
+    width: 46px; height: 46px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--set-accent, #ffd9c2); color: var(--ink);
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 24px; line-height: 1;
+    box-shadow: var(--shadow-soft); display: grid; place-items: center;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .set-shuffle:hover { transform: scale(1.1); box-shadow: var(--shadow); }
+  .set-shuffle:active { transform: scale(0.92); }
+
+  .home-foot { margin-top: 22px; text-align: center; color: var(--ink-soft); font-size: 12.5px; font-weight: 700; }
+  .home-foot .link { text-decoration: underline; cursor: pointer; }
+  .home-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+
+  /* ============================================================
+     SKÆRM 2 — KORT
+     ============================================================ */
+  .deck-screen { flex: 1; display: none; flex-direction: column; }
+  .deck-screen.active { display: flex; }
+  .home-screen.hidden { display: none; }
+
+  .set-label { text-align: center; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; font-size: 12px; color: var(--ink-soft); margin: 4px 0 14px; }
+
+  .stage { flex: 1; display: grid; place-items: center; position: relative; perspective: 1200px; min-height: 340px; }
+
+  .card {
+    position: relative; width: 100%; max-width: 400px; aspect-ratio: 3 / 4;
+    background: #fff; border-radius: var(--card-radius); box-shadow: var(--shadow);
+    padding: 28px; display: flex; flex-direction: column; overflow: hidden;
+    will-change: transform, opacity; transition: opacity .25s ease;
+    touch-action: none;
+  }
+  .card::after { content: ""; position: absolute; inset: 0; border-radius: var(--card-radius); background: linear-gradient(160deg, var(--accent, #ffe0cc) 0%, transparent 42%); opacity: 0.55; pointer-events: none; }
+  .card.is-used { opacity: 0.72; }
+
+  .card-img { position: relative; width: 100%; height: 38%; border-radius: 22px; background-size: cover; background-position: center; background-color: var(--accent, #ffe0cc); margin-bottom: 18px; flex: 0 0 auto; }
+  .card.no-img .card-img { display: none; }
+  .card-top { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .card-index { position: relative; font-weight: 800; font-size: 13px; letter-spacing: 1px; color: var(--ink-soft); }
+  .card-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(58,47,58,0.06); color: var(--ink-soft); font-size: 18px; line-height: 1;
+    display: grid; place-items: center; transition: transform .15s ease, background .15s ease, color .15s ease;
+  }
+  .icon-btn:hover { transform: scale(1.12); }
+  .icon-btn:active { transform: scale(0.9); }
+  .icon-btn.fav.active { color: #e5484d; background: rgba(229,72,77,0.14); }
+  .empty-msg { position: relative; z-index: 1; white-space: pre-line; text-align: center; font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; line-height: 1.3; color: var(--ink-soft); padding: 0 8px; }
+  .card-title { position: relative; font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(23px, 6.2vw, 31px); line-height: 1.12; margin-bottom: 12px; }
+  .card-text { position: relative; font-size: 17px; font-weight: 600; line-height: 1.5; color: var(--ink-soft); overflow-y: auto; flex: 1; }
+  .card-used-btn {
+    position: relative; z-index: 3; margin-top: 16px; align-self: flex-start;
+    border: 2px solid var(--good); background: transparent; color: var(--good);
+    font-family: inherit; font-weight: 800; font-size: 14px; padding: 9px 16px;
+    border-radius: 999px; cursor: pointer; transition: background .15s ease, color .15s ease;
+  }
+  .card.is-used .card-used-btn { background: var(--good); color: #fff; }
+
+  @keyframes inFromRight { from { transform: translateX(40px) rotate(3deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes inFromLeft  { from { transform: translateX(-40px) rotate(-3deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  .card.enter-right { animation: inFromRight .38s cubic-bezier(.22,.9,.32,1.2) both; }
+  .card.enter-left  { animation: inFromLeft  .38s cubic-bezier(.22,.9,.32,1.2) both; }
+
+  .dots { display: flex; gap: 8px; justify-content: center; margin: 20px 0 14px; flex-wrap: wrap; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(120,70,90,0.25); border: none; padding: 0; cursor: pointer; transition: transform .2s ease, background .2s ease; }
+  .dot.active { background: var(--ink); transform: scale(1.4); }
+  .dot.used { background: var(--good); }
+
+  .nav { display: flex; align-items: center; justify-content: center; gap: 18px; }
+  .nav-btn { border: none; background: #fff; color: var(--ink); width: 58px; height: 58px; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: var(--shadow-soft); display: grid; place-items: center; transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease; }
+  .nav-btn:hover:not(:disabled) { transform: scale(1.08); box-shadow: var(--shadow); }
+  .nav-btn:active:not(:disabled) { transform: scale(0.94); }
+  .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .counter { font-weight: 800; font-size: 15px; min-width: 62px; text-align: center; background: rgba(255,255,255,0.7); padding: 10px 4px; border-radius: 999px; }
+
+  .deck-foot { display: flex; gap: 10px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+  .ghost-btn { border: none; background: rgba(255,255,255,0.55); color: var(--ink-soft); font-family: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+  .ghost-btn:hover { background: rgba(255,255,255,0.9); color: var(--ink); }
+  .ghost-btn.on { background: var(--ink); color: #fff; }
+
+  /* "⋯"-menuknap i toppen (kun i dæk) */
+  .pill-btn.icon-only { padding: 8px 14px; font-size: 22px; line-height: 1; }
+
+  /* Bund-ark (menu bag ⋯) */
+  .sheet-backdrop { position: fixed; inset: 0; background: rgba(58,47,58,0.28); opacity: 0; pointer-events: none; transition: opacity .25s ease; z-index: 60; }
+  .sheet-backdrop.show { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 50%; bottom: 0; transform: translateX(-50%) translateY(110%);
+    width: min(560px, 100%); z-index: 61;
+    background: #fff; border-radius: 26px 26px 0 0; box-shadow: var(--shadow);
+    padding: 12px 18px calc(20px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 10px;
+    transition: transform .3s cubic-bezier(.22,.9,.32,1.2);
+  }
+  .sheet.show { transform: translateX(-50%) translateY(0); }
+  .sheet-handle { width: 40px; height: 5px; border-radius: 999px; background: rgba(58,47,58,0.18); margin: 2px auto 8px; }
+  .sheet .ghost-btn { display: block; width: 100%; text-align: center; padding: 14px; font-size: 15px; background: rgba(58,47,58,0.05); color: var(--ink); }
+  .sheet .ghost-btn.on { background: var(--ink); color: #fff; }
+  .sheet-hint { text-align: center; color: var(--ink-soft); font-size: 12.5px; font-weight: 600; margin: 4px 0 2px; }
+
+  /* Dialoger (intro + bekræft) */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(58,47,58,0.42); opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 70; }
+  .modal-backdrop.show { opacity: 1; pointer-events: auto; }
+  .modal {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -46%) scale(0.96);
+    opacity: 0; pointer-events: none; width: min(420px, calc(100% - 40px)); z-index: 71;
+    background: #fff; border-radius: 24px; box-shadow: var(--shadow); padding: 22px 22px 18px;
+    transition: opacity .2s ease, transform .2s cubic-bezier(.22,.9,.32,1.2);
+  }
+  .modal.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+  .modal-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; margin-bottom: 14px; text-align: center; line-height: 1.25; }
+  .intro-list { list-style: none; display: flex; flex-direction: column; gap: 12px; margin: 6px 0 20px; }
+  .intro-list li { display: flex; align-items: center; gap: 14px; font-weight: 700; font-size: 15px; color: var(--ink); }
+  .intro-ic { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; background: rgba(58,47,58,0.06); display: grid; place-items: center; font-size: 20px; }
+  .modal-btn { width: 100%; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 15px; padding: 14px; border-radius: 999px; background: var(--ink); color: #fff; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .modal-btn { width: auto; flex: 1; }
+  .modal-btn.ghost { background: rgba(58,47,58,0.08); color: var(--ink); }
+  .modal-btn.danger { background: #e5484d; color: #fff; }
+  .modal-btn + .modal-btn { margin-top: 10px; }
+  .modal-big { font-size: 40px; text-align: center; margin-bottom: 6px; }
+  .modal-text { text-align: center; color: var(--ink-soft); font-weight: 600; font-size: 15px; margin-bottom: 18px; line-height: 1.4; }
+
+  /* Skærmlæser-kun tekst */
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  /* Konfetti */
+  #confetti { position: fixed; inset: 0; z-index: 90; pointer-events: none; display: none; }
+
+  /* ---------- Mørk tilstand ---------- */
+  html.dark {
+    --bg-1: #241d29; --bg-2: #2a2030; --bg-3: #1d2130;
+    --ink: #f2ecf3; --ink-soft: #b6a7ba; --good: #43cf98;
+    --shadow: 0 24px 60px -20px rgba(0,0,0,0.65); --shadow-soft: 0 10px 30px -12px rgba(0,0,0,0.5);
+  }
+  html.dark .bg::before { background: #5a3a52; opacity: .35; }
+  html.dark .bg::after { background: #3a3a6a; opacity: .35; }
+  html.dark .card { background: #2b2431; }
+  html.dark .nav-btn { background: #352c3d; color: var(--ink); }
+  html.dark .counter { background: rgba(255,255,255,0.08); }
+  html.dark .pill-btn { background: rgba(255,255,255,0.10); color: var(--ink); }
+  html.dark .pill-btn:hover { background: rgba(255,255,255,0.18); }
+  html.dark .ghost-btn { background: rgba(255,255,255,0.08); color: var(--ink-soft); }
+  html.dark .ghost-btn:hover { background: rgba(255,255,255,0.16); color: var(--ink); }
+  html.dark .ghost-btn.on { background: var(--ink); color: #241d29; }
+  html.dark .set-card { background: rgba(255,255,255,0.06); }
+  html.dark .icon-btn { background: rgba(255,255,255,0.08); color: var(--ink-soft); }
+  html.dark .icon-btn.fav.active { color: #ff6b70; background: rgba(255,107,112,0.18); }
+  html.dark .dot { background: rgba(255,255,255,0.22); }
+  html.dark .dot.active { background: var(--ink); }
+  html.dark .sheet { background: #241d29; }
+  html.dark .sheet-handle { background: rgba(255,255,255,0.22); }
+  html.dark .sheet .ghost-btn { background: rgba(255,255,255,0.07); color: var(--ink); }
+  html.dark .sheet .ghost-btn.on { background: var(--ink); color: #241d29; }
+  html.dark .banner { background: #2b2431; }
+  html.dark .banner button { background: var(--ink); color: #241d29; }
+  html.dark .banner .x { color: var(--ink-soft); }
+  html.dark .modal { background: #2b2431; }
+  html.dark .intro-ic { background: rgba(255,255,255,0.08); }
+  html.dark .modal-btn { background: var(--ink); color: #241d29; }
+  html.dark .modal-btn.ghost { background: rgba(255,255,255,0.08); color: var(--ink); }
+  html.dark .card.is-used .card-used-btn { background: var(--good); color: #241d29; }
+  html.dark .set-shuffle { color: #241d29; }
+
+  /* ---------- Reduceret bevægelse ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .card.enter-right, .card.enter-left { animation: none !important; }
+  }
+  .hint { text-align: center; color: var(--ink-soft); font-size: 13px; font-weight: 600; margin-top: 12px; opacity: .8; }
+
+  /* ---------- Update / install banner ---------- */
+  .banner {
+    position: fixed; left: 50%; transform: translateX(-50%) translateY(140%);
+    bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 50;
+    width: min(560px, calc(100% - 32px));
+    background: #fff; box-shadow: var(--shadow); border-radius: 18px;
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    transition: transform .3s cubic-bezier(.22,.9,.32,1.2);
+  }
+  .banner.show { transform: translateX(-50%) translateY(0); }
+  .banner p { font-weight: 700; font-size: 14.5px; flex: 1; }
+  .banner button { border: none; background: var(--ink); color: #fff; font-family: inherit; font-weight: 800; font-size: 14px; padding: 10px 16px; border-radius: 999px; cursor: pointer; }
+  .banner .x { background: transparent; color: var(--ink-soft); padding: 8px; font-size: 18px; }
+
+  @media (max-width: 420px) {
+    .app { padding-left: 16px; padding-right: 16px; }
+    .nav-btn { width: 52px; height: 52px; }
+  }
+</style>
+</head>
+<body>
+  <div id="splash" class="splash" aria-hidden="true">
+    <svg class="splash-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Samtalekort">
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc5a8"/><stop offset="1" stop-color="#d3beff"/></linearGradient></defs>
+      <rect width="512" height="512" rx="150" fill="url(#sg)"/>
+      <rect x="96" y="120" width="320" height="248" rx="72" fill="#ffffff"/>
+      <path d="M182 356 L150 430 L262 356 Z" fill="#ffffff"/>
+      <circle cx="200" cy="244" r="22" fill="#483a4a"/>
+      <circle cx="256" cy="244" r="22" fill="#483a4a"/>
+      <circle cx="312" cy="244" r="22" fill="#483a4a"/>
+    </svg>
+    <div class="splash-title">Samtalekort</div>
+    <div class="splash-brand">Meanwhile</div>
+  </div>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand"><span>💬</span> Samtalekort</div>
+      <div class="spacer"></div>
+      <button class="pill-btn icon-only" id="menuBtn" style="display:none" aria-label="Menu">⋯</button>
+      <button class="pill-btn" id="backBtn" style="display:none">‹ Sæt</button>
+    </div>
+
+    <!-- SKÆRM 1 -->
+    <section class="home-screen" id="homeScreen">
+      <div class="home-head">
+        <h1 id="homeTitle"></h1>
+        <p id="homeSub"></p>
+      </div>
+      <div class="set-grid" id="setGrid"></div>
+      <div class="home-actions">
+        <button class="pill-btn" id="resumeBtn" style="display:none"></button>
+        <button class="pill-btn" id="favBtn">♥ Favoritter</button>
+        <button class="pill-btn" id="installBtn" style="display:none">⬇︎ Installér app</button>
+        <button class="ghost-btn" id="resetAllBtn">Nulstil alle brugte kort</button>
+      </div>
+      <div class="home-foot">
+        <span id="versionLabel"></span> · <span class="link" id="checkUpdateBtn">Søg efter opdatering</span> · <span class="link" id="aboutBtn">Om</span>
+      </div>
+    </section>
+
+    <!-- SKÆRM 2 -->
+    <section class="deck-screen" id="deckScreen">
+      <div class="set-label" id="setLabel"></div>
+      <div class="stage" id="stage"></div>
+      <div class="dots" id="dots"></div>
+      <div class="nav">
+        <button class="nav-btn" id="prevBtn" aria-label="Forrige">‹</button>
+        <div class="counter" id="counter"></div>
+        <button class="nav-btn" id="nextBtn" aria-label="Næste">›</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Menu (bund-ark bag ⋯) -->
+  <div class="sheet-backdrop" id="menuBackdrop"></div>
+  <div class="sheet" id="menu">
+    <div class="sheet-handle"></div>
+    <button class="ghost-btn" id="shuffleBtn">🎲 Tilfældigt kort</button>
+    <button class="ghost-btn" id="onlyUnusedBtn">Kun ubrugte: fra</button>
+    <button class="ghost-btn" id="nextUnusedBtn">Næste ubrugte →</button>
+    <button class="ghost-btn" id="resetSetBtn">Nulstil dette sæt</button>
+    <button class="ghost-btn" id="themeBtn">Tema: Auto</button>
+    <button class="ghost-btn" id="guideBtn">Sådan bruger du kortene</button>
+    <p class="sheet-hint">Swipe ↔ skift kort · swipe ↕ skift sæt · ♥ favorit · 📤 del</p>
+  </div>
+
+  <!-- Intro-vejledning -->
+  <div class="modal-backdrop" id="introBackdrop"></div>
+  <div class="modal" id="intro" role="dialog" aria-modal="true">
+    <h3 class="modal-title">Sådan bruger du kortene</h3>
+    <ul class="intro-list">
+      <li><span class="intro-ic">↔</span> Swipe til siden — skift kort</li>
+      <li><span class="intro-ic">↕</span> Swipe op/ned — skift tema-sæt</li>
+      <li><span class="intro-ic">♥</span> Gem et kort som favorit</li>
+      <li><span class="intro-ic">📤</span> Del et kort</li>
+      <li><span class="intro-ic">⋯</span> Flere valg i menuen</li>
+    </ul>
+    <button class="modal-btn" id="introClose">Kom i gang</button>
+  </div>
+
+  <!-- Bekræft-dialog -->
+  <div class="modal-backdrop" id="confirmBackdrop"></div>
+  <div class="modal" id="confirm" role="dialog" aria-modal="true">
+    <p class="modal-title" id="confirmText"></p>
+    <div class="modal-actions">
+      <button class="modal-btn ghost" id="confirmCancel">Annuller</button>
+      <button class="modal-btn danger" id="confirmOk">Nulstil</button>
+    </div>
+  </div>
+
+  <!-- Om-skærm -->
+  <div class="modal-backdrop" id="aboutBackdrop"></div>
+  <div class="modal" id="about" role="dialog" aria-modal="true">
+    <h3 class="modal-title">Samtalekort</h3>
+    <p class="modal-text" id="aboutText"></p>
+    <button class="modal-btn" id="aboutClose">Luk</button>
+  </div>
+
+  <!-- Fejring når et sæt er gennemført -->
+  <div class="modal-backdrop" id="celebrateBackdrop"></div>
+  <div class="modal" id="celebrate" role="dialog" aria-modal="true">
+    <div class="modal-big">🎉</div>
+    <h3 class="modal-title">Godt gået!</h3>
+    <p class="modal-text" id="celebrateText"></p>
+    <button class="modal-btn" id="celebrateNext">Næste sæt →</button>
+    <button class="modal-btn ghost" id="celebrateReset">Nulstil sættet</button>
+    <button class="modal-btn ghost" id="celebrateClose">Luk</button>
+  </div>
+
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <div id="live" class="sr-only" aria-live="polite" role="status"></div>
+
+  <!-- Update / install banner -->
+  <div class="banner" id="banner">
+    <p id="bannerText"></p>
+    <button id="bannerAction"></button>
+    <button class="x" id="bannerClose" aria-label="Luk">✕</button>
+  </div>
+
+<script>
+/* ================================================================
+   VERSION
+   Vises i appen. Selve opdaterings-mekanismen styres af sw.js
+   (hæv CACHE-tallet dér for at udgive en ny version).
+   ================================================================ */
+const APP_VERSION = "1.0.0";
+
+/* ================================================================
+   DATAMODEL — helt fleksibel (vilkårligt antal sæt og kort).
+   Hvert 'id' bruges til at huske "brugt"-status. Behold id'er
+   stabile over versioner, så hukommelsen følger med.
+   Felter: set{ id, title, description?, emoji?, image?, accent?, cards[] }
+           card{ id, title?, text, image?, accent? }
+   Billeder er valgfri overalt.
+   ================================================================ */
+const DATA = {
+  title: "Hvad skal vi tale om?",
+  subtitle: "Vælg et tema og tag en snak — ét kort ad gangen.",
+  sets: [
+    {
+      id: "fremtid", title: "Fremtid & drømme", description: "Ægteskab, børn, rejser og hvor vi er på vej hen.",
+      emoji: "🌅", accent: "#ffd0b8",
+      cards: [
+        { id: "c1", title: "Hvordan ser vores forhold ud om 5, 10 og 15 år?" },
+        { id: "c2", title: "Drømmer du om at blive gift?" },
+        { id: "c3", title: "Drømmer du om at få børn?" },
+        { id: "c6", title: "Hvilke ting står på din bucketliste, som vi kan nå at gøre sammen i år?" },
+        { id: "c7", title: "Hvad er én ting, vi ikke har gjort endnu, som du glæder dig til at gøre med mig?" },
+        { id: "c8", title: "Hvad synes du om frieri i offentligheden?" },
+        { id: "c9", title: "Har du nogensinde tænkt over, hvordan du gerne vil have dit bryllup skal se ud?" },
+        { id: "c10", title: "Hvilken slags forælder ønsker du at være?" },
+        { id: "c11", title: "Hvilken ferietradition synes du, vi skal starte sammen?" },
+        { id: "c12", title: "Drømmer du om at rejse? Hvorhen?" },
+        { id: "c13", title: "Hvor ser du dig selv slå dig ned?" },
+        { id: "c14", title: "Kan du forestille dig, at vi bor sammen?" },
+        { id: "c129", title: "Hvad er en drøm, du har lagt på hylden — savner du den?" },
+        { id: "c130", title: "Hvor vil du helst bo, når vi bliver gamle?" },
+        { id: "c131", title: "Hvad glæder du dig mest til ved fremtiden med mig?" },
+        { id: "c132", title: "Hvis vi kunne tage ét år fri sammen, hvad skulle vi lave?" },
+      ]
+    },
+    {
+      id: "kaerlighed", title: "Kærlighed & forelskelse", description: "Gnisten, begyndelsen og hvad kærlighed er for os.",
+      emoji: "💘", accent: "#ffc2d4",
+      cards: [
+        { id: "c15", title: "Hvad er kærlighed for dig?" },
+        { id: "c16", title: "Hvornår føler du dig allermest elsket?" },
+        { id: "c17", title: "Hvad faldt du for ved mig, da vi mødte hinanden?" },
+        { id: "c18", title: "Hvornår vidste du, at du var forelsket i mig?" },
+        { id: "c19", title: "Hvornår er du allermest forelsket i mig?" },
+        { id: "c20", title: "Hvordan vil du beskrive forelskelse?" },
+        { id: "c21", title: "Hvad er dit kærlighedssprog?" },
+        { id: "c22", title: "Hvordan vil du have, at jeg skal vise dig kærlighed?" },
+        { id: "c23", title: "Hvad er din yndlingskærlighedssang?" },
+        { id: "c25", title: "Tror du på kærlighed ved første blik?" },
+        { id: "c28", title: "Hvad er det vildeste, du nogensinde har gjort for kærlighed?" },
+        { id: "c133", title: "Hvad fik dig til at vide, at det var mig?" },
+        { id: "c134", title: "Hvad er den mest romantiske ting, nogen har gjort for dig?" },
+        { id: "c135", title: "Hvornår føler du dig mest tiltrukket af mig?" },
+        { id: "c136", title: "Hvilken lille ting gør jeg, som du holder af?" },
+      ]
+    },
+    {
+      id: "os-to", title: "Os to — gode stunder", description: "Minder, taknemmelighed og det bedste ved os.",
+      emoji: "✨", accent: "#ffdf9e",
+      cards: [
+        { id: "c29", title: "Hvilke tre ord beskriver vores parforhold bedst?" },
+        { id: "c30", title: "Hvilke tre ting har vi til fælles?" },
+        { id: "c31", title: "Hvad er dit bedste minde med mig?" },
+        { id: "c32", title: "Hvad er du mest taknemmelig for i vores forhold?" },
+        { id: "c33", title: "Hvornår er du allermest lykkelig sammen med mig?" },
+        { id: "c34", title: "Beskriv dine følelser for mig med tre ord." },
+        { id: "c49", title: "Hvis du skulle beskrive vores forhold med en filmtitel, hvad ville det så hedde?" },
+        { id: "c137", title: "Hvad er vi allerbedst til sammen?" },
+        { id: "c138", title: "Hvornår er du mest stolt af os?" },
+        { id: "c139", title: "Hvad ville du ønske, vi gjorde noget mere af?" },
+        { id: "c140", title: "Beskriv en helt almindelig dag, der alligevel var perfekt." },
+      ]
+    },
+    {
+      id: "date", title: "Date & kvalitetstid", description: "Sådan er vi bedst sammen — og hvad vi burde prøve.",
+      emoji: "🍽️", accent: "#c9e7d0",
+      cards: [
+        { id: "c46", title: "Hvad er din foretrukne måde at tilbringe kvalitetstid sammen på?" },
+        { id: "c47", title: "Hvad vil du gerne have fra din kæreste, hvis du har haft en lang hård dag?" },
+        { id: "c48", title: "Hvad kunne du godt tænke dig at lave med mig, som vi ikke har gjort før?" },
+        { id: "c51", title: "Foretrækker du spontane eller planlagte date-nights?" },
+        { id: "c52", title: "Foretrækker du fancy eller afslappede date-nights?" },
+        { id: "c53", title: "Hvordan ser din ideelle date-night ud?" },
+        { id: "c67", title: "Synes du, vi tilbringer nok tid sammen?" },
+        { id: "c141", title: "Planlæg vores perfekte fridag fra morgen til aften." },
+        { id: "c142", title: "Hjemme-date eller ude-date — og hvorfor?" },
+        { id: "c143", title: "Hvad er en date, vi aldrig har prøvet, men burde?" },
+        { id: "c144", title: "Hvad får dig til at føle dig tættest på mig?" },
+      ]
+    },
+    {
+      id: "vaerdier", title: "Værdier & forbilleder", description: "Hvad der betyder mest, og de forhold vi ser op til.",
+      emoji: "🧭", accent: "#cfe0ff",
+      cards: [
+        { id: "c35", title: "Hvad er det vigtigste for dig i et forhold?" },
+        { id: "c36", title: "Hvad er dine dealbreakers i et forhold?" },
+        { id: "c54", title: "Kan du tænke på to personer i dit liv, som har et forhold, du ser op til?" },
+        { id: "c55", title: "Hvilke ting (hvis nogen) fra dine forældres forhold ønsker du at have i vores?" },
+        { id: "c56", title: "Hvilke ting (hvis nogen) fra dine forældres forhold ønsker du absolut ikke at have i vores?" },
+        { id: "c58", title: "Hvad er det vigtigste for dig i dit liv?" },
+        { id: "c59", title: "Hvad er de vigtigste værdier et menneske kan have?" },
+        { id: "c145", title: "Hvilken værdi vil du helst give videre til vores børn?" },
+        { id: "c146", title: "Hvem har formet den, du er i dag?" },
+        { id: "c147", title: "Hvad betyder et godt liv for dig?" },
+        { id: "c148", title: "Hvornår er du mest tro mod dig selv?" },
+      ]
+    },
+    {
+      id: "holdninger", title: "Holdninger til kærlighed & livet", description: "De større spørgsmål — syn på kærlighed, ærlighed og valg.",
+      emoji: "💭", accent: "#e2d1ff",
+      cards: [
+        { id: "c24", title: "Ville du ofre dine karrieremål for kærligheden?" },
+        { id: "c26", title: "Tror du, at folk bliver forelskede, fordi den rigtige person dukker op, eller fordi tidspunktet i deres liv er det rette?" },
+        { id: "c27", title: "Kunne du finde på at flytte landsdel for kærlighed?" },
+        { id: "c50", title: "Hvad er den mest værdifulde lektie et tidligere forhold har lært dig?" },
+        { id: "c75", title: "Hvilken rolle spiller religion og spiritualitet i dit liv?" },
+        { id: "c76", title: "Mener du, at der er køns- eller samfundsmæssige pres i vores forhold?" },
+        { id: "c77", title: "Hvad er en fejl, du har begået i tidligere forhold, som du ikke ønsker at gentage?" },
+        { id: "c78", title: "Synes du, det nogensinde er okay at lyve? Under hvilke omstændigheder?" },
+        { id: "c149", title: "Kan man elske to mennesker på samme tid?" },
+        { id: "c150", title: "Er lykke noget, man finder eller vælger?" },
+        { id: "c151", title: "Hvad er vigtigst: lidenskab eller stabilitet?" },
+        { id: "c152", title: "Kan man ændre sig for nogen uden at miste sig selv?" },
+      ]
+    },
+    {
+      id: "det-indre", title: "Det indre — dig", description: "Drømme, frygt og det, du sjældent sætter ord på.",
+      emoji: "🌙", accent: "#d9c9ff",
+      cards: [
+        { id: "c4", title: "Har du nogle dårlige vaner, du gerne vil lave om på?" },
+        { id: "c5", title: "Hvilke tre ting ønsker du at opnå i år?" },
+        { id: "c57", title: "Hvad fortryder du mest, du har eller ikke har gjort?" },
+        { id: "c60", title: "Hvad drømmer du om?" },
+        { id: "c61", title: "Hvornår har du sidst grædt, og hvorfor?" },
+        { id: "c62", title: "Hvad gør dig glad?" },
+        { id: "c64", title: "Hvad er din største frygt?" },
+        { id: "c65", title: "Hvad er noget, du aldrig har fortalt nogen før?" },
+        { id: "c66", title: "Hvad er din yndlingsting ved dig selv?" },
+        { id: "c153", title: "Hvad er en fejl, der har formet dig mest?" },
+        { id: "c154", title: "Hvad har du brug for, når du har det svært?" },
+        { id: "c155", title: "Hvad er du holdt op med at bekymre dig om?" },
+        { id: "c156", title: "Hvornår føler du dig mest levende?" },
+      ]
+    },
+    {
+      id: "naerhed", title: "Nærhed, tillid & vækst", description: "Tryghed, omsorg og hvordan vi vokser sammen.",
+      emoji: "🌱", accent: "#bfe6d0",
+      cards: [
+        { id: "c38", title: "Føler du dig tryg i vores forhold?" },
+        { id: "c63", title: "Hvad kan jeg gøre for at gøre dig glad?" },
+        { id: "c68", title: "Får jeg dig til at føle dig værdsat?" },
+        { id: "c69", title: "Hvordan er du omsorgsfuld overfor dig selv?" },
+        { id: "c70", title: "Hvordan synes du, vi kan hjælpe hinanden med at vokse?" },
+        { id: "c71", title: "Hvordan har du det, når vi er adskilt?" },
+        { id: "c72", title: "Hvornår føler du dig distanceret fra mig?" },
+        { id: "c73", title: "Stoler du på mig?" },
+        { id: "c74", title: "Ville du nogensinde overveje at gå til parterapi?" },
+        { id: "c157", title: "Hvornår har du sidst følt dig virkelig set af mig?" },
+        { id: "c158", title: "Hvad kan jeg gøre for, at du føler dig mere tryg?" },
+        { id: "c159", title: "Hvordan viser du bedst, at du holder af nogen?" },
+        { id: "c160", title: "Hvad har vi lært af hinanden?" },
+      ]
+    },
+    {
+      id: "udfordringer", title: "Udfordringer & ærlighed", description: "De ærlige kort — irritationer, skænderier og det skrøbelige.",
+      emoji: "🌦️", accent: "#ffd6c2",
+      cards: [
+        { id: "c37", title: "Hvordan har du det med vores forhold lige nu?" },
+        { id: "c39", title: "Hvad kan gøre dig jaloux?" },
+        { id: "c40", title: "Hvornår gør jeg dig vred eller irriteret?" },
+        { id: "c41", title: "Gør jeg noget, der generer dig?" },
+        { id: "c42", title: "Hvis du tænker tilbage, hvad burde du så undskylde for?" },
+        { id: "c43", title: "Hvad synes du, at vores parforhold mangler?" },
+        { id: "c44", title: "Hvilket øjeblik har været det mest skrøbelige i vores forhold?" },
+        { id: "c45", title: "Hvilke temaer går igen, når vi skændes?" },
+        { id: "c161", title: "Er der noget, du går og tænker, men ikke har sagt?" },
+        { id: "c162", title: "Hvad ville du ønske, jeg forstod bedre?" },
+        { id: "c163", title: "Hvornår trækker du dig — og hvorfor?" },
+        { id: "c164", title: "Hvad er den sværeste samtale, vi mangler at tage?" },
+      ]
+    },
+    {
+      id: "intimitet", title: "Intimitet & sex", description: "De mere private kort — når I er klar.",
+      emoji: "🔥", accent: "#ffb3b3",
+      cards: [
+        { id: "c79", title: "Hvad er din største seksuelle fantasi?" },
+        { id: "c80", title: "Hvad er det største turn off i sengen?" },
+        { id: "c81", title: "Hvad er din yndlingskrammeposition?" },
+        { id: "c82", title: "Har du noget, som du godt gad prøve i sengen, men som du har svært ved at foreslå?" },
+        { id: "c83", title: "Hvad er noget, vi aldrig har prøvet sammen, som du gerne vil?" },
+        { id: "c84", title: "Hvad er din yndlingstype af kys?" },
+        { id: "c85", title: "Er der nogen aspekter af sex og intimitet, du ikke har udforsket, men gerne vil?" },
+        { id: "c86", title: "Er der noget ved vores seksuelle forhold, du gerne ville have anderledes?" },
+        { id: "c87", title: "Synes du, at vi er et godt match, når det kommer til vores intimitetsønsker?" },
+        { id: "c88", title: "Hvor vigtigt er fysisk intimitet for dig?" },
+        { id: "c165", title: "Hvad får dig til at føle dig ønsket?" },
+        { id: "c166", title: "Hvornår føler du dig tættest på mig fysisk?" },
+        { id: "c167", title: "Er der noget, du gerne vil sige ja til oftere?" },
+        { id: "c168", title: "Hvordan siger du bedst til, når du har lyst?" },
+      ]
+    },
+    {
+      id: "boern", title: "For de små (ca. 8 år)", description: "Sjove, fantasifulde spørgsmål til de yngste.",
+      emoji: "🧒", accent: "#ffdf8a",
+      cards: [
+        { id: "c89", title: "Hvis du kunne få én superkraft, hvilken skulle det være — og hvad ville du bruge den til?" },
+        { id: "c90", title: "Hvis du kunne være et dyr en hel dag, hvilket dyr ville du så være?" },
+        { id: "c91", title: "Forestil dig, at du kunne flyve. Hvor ville du flyve hen først?" },
+        { id: "c92", title: "Hvis du havde en drage som kæledyr, hvad skulle den hedde?" },
+        { id: "c93", title: "Hvis dit værelse pludselig kunne tale, hvad tror du, det ville sige?" },
+        { id: "c94", title: "Hvis du kunne opfinde en helt ny is-smag, hvad skulle den smage af?" },
+        { id: "c95", title: "Hvis du var konge eller dronning for en dag, hvad ville du bestemme først?" },
+        { id: "c96", title: "Forestil dig en hel verden lavet af slik — hvad ville du smage først?" },
+        { id: "c97", title: "Hvis du kunne finde på et helt nyt dyr, hvordan ville det se ud?" },
+        { id: "c98", title: "Hvis du kunne trylle én ting frem lige nu, hvad skulle det være?" },
+        { id: "c99", title: "Hvad er din yndlingsleg lige nu?" },
+        { id: "c100", title: "Hvilken farve gør dig glad — og hvorfor?" },
+        { id: "c101", title: "Hvad er det sjoveste, du ved?" },
+        { id: "c102", title: "Hvad er din yndlingsmad, og hvad ville du aldrig turde smage?" },
+        { id: "c103", title: "Hvilken årstid kan du bedst lide, og hvad laver du så?" },
+        { id: "c104", title: "Hvad er din yndlingsbog eller -film lige nu?" },
+        { id: "c105", title: "Hvilken sang har du mest lyst til at danse til?" },
+        { id: "c106", title: "Hvis du måtte lave én ting hele dagen, hvad skulle det være?" },
+        { id: "c107", title: "Hvad gør dig rigtig glad?" },
+        { id: "c108", title: "Hvad gør man, synes du, når man er en god ven?" },
+        { id: "c109", title: "Hvornår føler du dig modig?" },
+        { id: "c110", title: "Hvad plejer at hjælpe, når du er ked af det?" },
+        { id: "c111", title: "Hvad er du rigtig god til?" },
+        { id: "c112", title: "Hvad er du stolt af at have lært?" },
+        { id: "c113", title: "Hvad kan få dig til at grine, så du næsten ikke kan stoppe?" },
+        { id: "c114", title: "Hvornår har du sidst hjulpet nogen?" },
+        { id: "c115", title: "Hvad drømmer du om at blive, når du bliver stor?" },
+        { id: "c116", title: "Hvis du kunne rejse hvor som helst, hvor ville du tage hen?" },
+        { id: "c117", title: "Hvad kunne du rigtig godt tænke dig at lære?" },
+        { id: "c118", title: "Hvis du kunne spørge et dyr om én ting, hvad ville du spørge om?" },
+        { id: "c119", title: "Hvad tror du, der findes ude i rummet?" },
+        { id: "c120", title: "Hvad er det mest spændende, du nogensinde har prøvet?" },
+        { id: "c121", title: "Hvis du kunne bygge dit drømmehus, hvad skulle der være i det?" },
+        { id: "c122", title: "Hvad ville du ønske, hvis du havde tre ønsker?" },
+        { id: "c123", title: "Hvis du måtte spise morgenmad til aftensmad, hvad ville du vælge?" },
+        { id: "c124", title: "Hvad ville du gøre, hvis du vågnede og var lige så høj som et hus?" },
+        { id: "c125", title: "Hvilket fjollet navn ville du give en guldfisk?" },
+        { id: "c126", title: "Hvis dine sko kunne løbe af sig selv, hvor ville de løbe hen?" },
+        { id: "c127", title: "Hvad er den allerfjolleste dans, du kan finde på — vil du vise den?" },
+        { id: "c128", title: "Hvis du kunne bytte plads med en voksen en hel dag, hvad ville du så lave?" },
+        { id: "c169", title: "Hvad er det bedste ved at være barn?" },
+        { id: "c170", title: "Hvis du var lærer for en dag, hvad ville du lære os?" },
+        { id: "c171", title: "Hvad er den bedste dag, du kan huske?" },
+        { id: "c172", title: "Hvis du bestemte aftensmaden hver dag, hvad blev det?" },
+      ]
+    },
+    {
+      id: "sjov-leg", title: "Sjov & leg", description: "Lette, fjollede kort til en afslappet aften.",
+      emoji: "🎉", accent: "#ffcf6b",
+      cards: [
+        { id: "c173", title: "Hvis vores liv var en tv-serie, hvad skulle den hedde?" },
+        { id: "c174", title: "Hvilken superkraft ville være mest nyttig i vores hverdag?" },
+        { id: "c175", title: "Would you rather: aldrig se film igen, eller aldrig høre musik igen?" },
+        { id: "c176", title: "Hvis vi skulle have et fjollet kælenavn til hinanden, hvad skulle det være?" },
+        { id: "c177", title: "Hvem af os ville overleve længst på en øde ø?" },
+        { id: "c178", title: "Hvis du skulle beskrive mig med én emoji, hvilken?" },
+        { id: "c179", title: "Hvilket dyr passer bedst til mig — og til dig?" },
+        { id: "c180", title: "Hvis vi vandt en million i morgen, hvad køber vi først?" },
+        { id: "c181", title: "Hvad er den mest pinlige sang på din playliste?" },
+        { id: "c182", title: "Hvis vi kunne bytte liv med et berømt par en dag, hvem?" },
+        { id: "c183", title: "Hvilket talent ville du ønske, du havde?" },
+        { id: "c184", title: "Beskriv mig som en filmkarakter." },
+      ]
+    },
+    {
+      id: "minder", title: "Minder & vores historie", description: "Se tilbage på det, vi har sammen.",
+      emoji: "📸", accent: "#f7b9a3",
+      cards: [
+        { id: "c185", title: "Hvad husker du bedst fra vores første date?" },
+        { id: "c186", title: "Hvornår grinede vi allermest sammen?" },
+        { id: "c187", title: "Hvilket øjeblik var et vendepunkt for os?" },
+        { id: "c188", title: "Hvad tænkte du første gang, du så mig?" },
+        { id: "c189", title: "Hvilken rejse eller tur vil du helst gøre om?" },
+        { id: "c190", title: "Hvad er et lille øjeblik, du aldrig har glemt?" },
+        { id: "c191", title: "Hvornår var du mest stolt af mig?" },
+        { id: "c192", title: "Hvad var det sværeste, vi er kommet igennem sammen?" },
+        { id: "c193", title: "Hvilken tradition har vi, som du holder mest af?" },
+        { id: "c194", title: "Hvad savner du fra dengang, vi lige var blevet et par?" },
+        { id: "c195", title: "Hvad er det bedste, vi nogensinde har lavet sammen?" },
+        { id: "c196", title: "Hvornår vidste du, at du ville blive?" },
+      ]
+    },
+    {
+      id: "hverdag", title: "Hverdag & praktik", description: "Det jordnære, der alligevel betyder noget.",
+      emoji: "🏠", accent: "#b8d9e6",
+      cards: [
+        { id: "c197", title: "Hvordan deler vi bedst det derhjemme, så det føles fair?" },
+        { id: "c198", title: "Hvordan har vi det egentlig med penge — taler vi nok om det?" },
+        { id: "c199", title: "Hvad stresser dig mest i hverdagen, som jeg kan hjælpe med?" },
+        { id: "c200", title: "Hvad er din drøm for vores hjem om fem år?" },
+        { id: "c201", title: "Hvad giver dig ro efter en lang dag?" },
+        { id: "c202", title: "Hvornår føler du dig mest overset i en travl uge?" },
+        { id: "c203", title: "Hvad kunne gøre vores morgener bedre?" },
+        { id: "c204", title: "Hvordan vil du gerne fejre de små sejre i hverdagen?" },
+        { id: "c205", title: "Hvad bruger vi for meget tid på — og for lidt?" },
+        { id: "c206", title: "Hvad er en god vane, vi burde starte sammen?" },
+        { id: "c207", title: "Hvordan siger du bedst til, når du har brug for hjælp?" },
+        { id: "c208", title: "Hvad ville gøre din hverdag 10 % lettere?" },
+      ]
+    },
+    {
+      id: "middagsbordet", title: "Middagsbordet", description: "For både store og små ved bordet.",
+      emoji: "🍽️", accent: "#ffcf9e",
+      cards: [
+        { id: "c209", title: "Hvad var det bedste ved din dag i dag?" },
+        { id: "c210", title: "Hvem gjorde noget venligt for dig i dag?" },
+        { id: "c211", title: "Hvis familien havde et motto, hvad skulle det være?" },
+        { id: "c212", title: "Hvad er du taknemmelig for lige nu?" },
+        { id: "c213", title: "Hvad lærte du i dag?" },
+        { id: "c214", title: "Hvad glæder du dig til i morgen?" },
+        { id: "c215", title: "Hvis vi skulle på eventyr i weekenden, hvorhen?" },
+        { id: "c216", title: "Hvad er det sjoveste, der er sket i denne uge?" },
+        { id: "c217", title: "Hvilken ret skal være vores families signaturret?" },
+        { id: "c218", title: "Hvem vil du gerne sige tak til?" },
+        { id: "c219", title: "Hvad er du god til, som du er stolt af?" },
+        { id: "c220", title: "Hvis du bestemte én familieregel, hvad blev det?" },
+      ]
+    },
+    {
+      id: "bilturen", title: "Bilturen & rejsen", description: "Til de lange ture og de store rejser.",
+      emoji: "🚗", accent: "#a9dcc0",
+      cards: [
+        { id: "c221", title: "Hvis vi kunne teleportere hen et sted nu, hvor skulle det være?" },
+        { id: "c222", title: "Byg dit drømme-roadtrip: tre stop." },
+        { id: "c223", title: "Hvilken sang skal altid spilles på en tur?" },
+        { id: "c224", title: "Hvad er det underligste sted, du har sovet?" },
+        { id: "c225", title: "Hvis du kunne rejse tilbage til én ferie, hvilken?" },
+        { id: "c226", title: "Bjerge eller strand — og hvorfor?" },
+        { id: "c227", title: "Hvad skal altid med i kufferten?" },
+        { id: "c228", title: "Hvilket land vil du helst besøge, du aldrig har set?" },
+        { id: "c229", title: "Hvad er det bedste, du har spist på en rejse?" },
+        { id: "c230", title: "Hvis vi kun måtte tage ét billede på hele turen, af hvad?" },
+        { id: "c231", title: "Fortæl om en rejse, der ikke gik som planlagt." },
+        { id: "c232", title: "Hvor vil du helst bo en hel måned?" },
+      ]
+    },
+    {
+      id: "storre-born", title: "Større børn (12+)", description: "Dybere kort til de større.",
+      emoji: "🧑", accent: "#c3b8f0",
+      cards: [
+        { id: "c233", title: "Hvad forstår voksne ikke ved at være på din alder?" },
+        { id: "c234", title: "Hvornår føler du dig mest dig selv?" },
+        { id: "c235", title: "Hvad ville du ændre ved verden, hvis du kunne?" },
+        { id: "c236", title: "Hvad er du mest stolt af ved dig selv?" },
+        { id: "c237", title: "Hvad gør en god ven, synes du?" },
+        { id: "c238", title: "Hvornår er det svært at være ærlig?" },
+        { id: "c239", title: "Hvad drømmer du om at lave, når du bliver ældre?" },
+        { id: "c240", title: "Hvad er du nervøs eller spændt på lige nu?" },
+        { id: "c241", title: "Hvad ville du gerne turde mere af?" },
+        { id: "c242", title: "Hvem ser du op til — og hvorfor?" },
+        { id: "c243", title: "Hvad vil du gerne have, vi voksne forstod bedre?" },
+        { id: "c244", title: "Hvordan er du en god ven mod dig selv?" },
+      ]
+    },
+    {
+      id: "jul", title: "Jul & højtider", description: "Til bordet i december.",
+      emoji: "🎄", accent: "#e6a9a9",
+      cards: [
+        { id: "c245", title: "Hvad er dit bedste juleminde?" },
+        { id: "c246", title: "Hvilken tradition betyder mest for dig?" },
+        { id: "c247", title: "Hvad ønsker du dig i år, som ikke kan pakkes ind?" },
+        { id: "c248", title: "Hvem vil du gerne se mere til i det nye år?" },
+        { id: "c249", title: "Hvad er den bedste gave, du nogensinde har fået?" },
+        { id: "c250", title: "Hvordan ser din perfekte juleaften ud?" },
+        { id: "c251", title: "Hvilken juletradition vil du gerne give videre?" },
+        { id: "c252", title: "Hvad dufter der af jul for dig?" },
+        { id: "c253", title: "Hvem savner du ved højtiderne?" },
+        { id: "c254", title: "Hvad er du taknemmelig for i år?" },
+        { id: "c255", title: "Hvilken ny tradition skal vi starte?" },
+        { id: "c256", title: "Hvad gør højtiderne særlige for dig?" },
+      ]
+    },
+    {
+      id: "nytaar", title: "Nytår & refleksion", description: "Ved årsskiftet.",
+      emoji: "✨", accent: "#cfd4ff",
+      cards: [
+        { id: "c257", title: "Hvad er du mest stolt af i år?" },
+        { id: "c258", title: "Hvad vil du give slip på?" },
+        { id: "c259", title: "Hvad lærte du om dig selv i år?" },
+        { id: "c260", title: "Hvad er én ting, du vil gøre mere af næste år?" },
+        { id: "c261", title: "Hvem var vigtig for dig i år?" },
+        { id: "c262", title: "Hvilket øjeblik vil du huske fra i år?" },
+        { id: "c263", title: "Hvad var årets største overraskelse?" },
+        { id: "c264", title: "Hvad gav dig energi — og hvad kostede energi?" },
+        { id: "c265", title: "Hvad tør du godt drømme om for det nye år?" },
+        { id: "c266", title: "Hvad vil du gerne sige tak for?" },
+        { id: "c267", title: "Hvilken vane vil du tage med ind i det nye år?" },
+        { id: "c268", title: "Hvis året var en overskrift, hvad ville den lyde?" },
+      ]
+    },
+    {
+      id: "store-sporgsmaal", title: "De store spørgsmål", description: "Filosofisk og eksistentielt.",
+      emoji: "🌌", accent: "#b7b0d6",
+      cards: [
+        { id: "c269", title: "Hvad giver dit liv mening lige nu?" },
+        { id: "c270", title: "Hvornår har du følt dig mest i live?" },
+        { id: "c271", title: "Hvad tror du sker, når vi dør?" },
+        { id: "c272", title: "Hvad ville du gøre, hvis du vidste, du ikke kunne fejle?" },
+        { id: "c273", title: "Hvad er du mest bange for at fortryde?" },
+        { id: "c274", title: "Hvad betyder frihed for dig?" },
+        { id: "c275", title: "Findes der noget større end os selv?" },
+        { id: "c276", title: "Hvad ville du ændre ved den, du var for ti år siden?" },
+        { id: "c277", title: "Hvornår har du sidst ombestemt dig om noget vigtigt?" },
+        { id: "c278", title: "Hvad ville du ønske, folk huskede dig for?" },
+        { id: "c279", title: "Er lykke et mål eller en bivirkning?" },
+        { id: "c280", title: "Hvad er det vigtigste, du har lært om at være menneske?" },
+      ]
+    },
+    {
+      id: "naerhed-36", title: "36 spørgsmål til nærhed", description: "Den berømte serie (Arthur Aron), der gradvist skaber tættere bånd.",
+      emoji: "💞", accent: "#ffb6c9",
+      cards: [
+        { id: "c281", title: "Hvis du kunne vælge hvem som helst i verden, hvem ville du invitere til middag?" },
+        { id: "c282", title: "Kunne du tænke dig at være berømt? På hvilken måde?" },
+        { id: "c283", title: "Øver du dig, før du ringer til nogen — på hvad du vil sige? Hvorfor?" },
+        { id: "c284", title: "Hvordan ser en perfekt dag ud for dig?" },
+        { id: "c285", title: "Hvornår sang du sidst for dig selv? Og for en anden?" },
+        { id: "c286", title: "Hvis du kunne blive 90 og beholde enten sindet eller kroppen fra en 30-årig de sidste 60 år — hvad vælger du?" },
+        { id: "c287", title: "Har du en hemmelig anelse om, hvordan du vil dø?" },
+        { id: "c288", title: "Nævn tre ting, du og jeg lader til at have til fælles." },
+        { id: "c289", title: "Hvad i dit liv er du mest taknemmelig for?" },
+        { id: "c290", title: "Hvis du kunne ændre noget ved måden, du blev opdraget på, hvad skulle det være?" },
+        { id: "c291", title: "Fortæl din livshistorie så detaljeret som muligt på fire minutter." },
+        { id: "c292", title: "Hvis du kunne vågne i morgen med én ny evne eller egenskab, hvilken?" },
+        { id: "c293", title: "Hvis en krystalkugle kunne fortælle sandheden om dig, livet eller fremtiden — hvad ville du vide?" },
+        { id: "c294", title: "Er der noget, du har drømt om at gøre længe? Hvorfor har du ikke gjort det?" },
+        { id: "c295", title: "Hvad er den største bedrift i dit liv?" },
+        { id: "c296", title: "Hvad værdsætter du mest i et venskab?" },
+        { id: "c297", title: "Hvad er dit mest dyrebare minde?" },
+        { id: "c298", title: "Hvad er dit værste minde?" },
+        { id: "c299", title: "Hvis du vidste, du ville dø om et år, ville du så ændre måden, du lever på? Hvorfor?" },
+        { id: "c300", title: "Hvad betyder venskab for dig?" },
+        { id: "c301", title: "Hvilken rolle spiller kærlighed og hengivenhed i dit liv?" },
+        { id: "c302", title: "Skiftes til at nævne en god egenskab ved den anden — fem hver." },
+        { id: "c303", title: "Hvor tæt og varm er din familie? Var din barndom lykkeligere end andres?" },
+        { id: "c304", title: "Hvordan har du det med dit forhold til din mor?" },
+        { id: "c305", title: "Lav tre sande 'vi'-udsagn hver, fx 'Vi er begge i dette rum og føler …'" },
+        { id: "c306", title: "Fuldfør sætningen: 'Jeg ville ønske, jeg havde nogen at dele … med.'" },
+        { id: "c307", title: "Hvis vi skulle blive nære venner, hvad er vigtigt for dig, at jeg ved?" },
+        { id: "c308", title: "Fortæl, hvad du kan lide ved mig — vær ærlig, også med ting du normalt ikke ville sige." },
+        { id: "c309", title: "Del et pinligt øjeblik fra dit liv." },
+        { id: "c310", title: "Hvornår græd du sidst foran en anden? Og alene?" },
+        { id: "c311", title: "Fortæl mig noget, du allerede godt kan lide ved mig." },
+        { id: "c312", title: "Er der noget, der er for alvorligt til at spøge med?" },
+        { id: "c313", title: "Hvis du døde i aften uden at kunne tale med nogen, hvad ville du mest fortryde ikke at have sagt? Til hvem?" },
+        { id: "c314", title: "Dit hus brænder. Efter dine kære og kæledyr er reddet, har du tid til én ting mere — hvad?" },
+        { id: "c315", title: "Af alle i din familie, hvis død ville forstyrre dig mest? Hvorfor?" },
+        { id: "c316", title: "Del et personligt problem, og spørg, hvordan den anden ville håndtere det — og hvordan de tror, du har det med det." },
+      ]
+    },
+  ]
+};
+
+/* ================================================================
+   HUKOMMELSE — hvilke kort er brugt (gemt lokalt på enheden)
+   ================================================================ */
+const STORE_KEY = "samtalekort:used:v1";
+let usedStore = {};
+let memoryOK = true;
+
+function loadUsed() {
+  try {
+    usedStore = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {};
+  } catch (e) { usedStore = {}; memoryOK = false; }
+}
+function saveUsed() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(usedStore)); }
+  catch (e) { memoryOK = false; }
+}
+const isUsed = (id) => !!usedStore[id];
+function setUsed(id, val) { if (val) usedStore[id] = 1; else delete usedStore[id]; saveUsed(); }
+
+/* Favoritter (gemt lokalt) */
+const FAV_KEY = "samtalekort:fav:v1";
+let favStore = {};
+function loadFav() { try { favStore = JSON.parse(localStorage.getItem(FAV_KEY) || "{}") || {}; } catch (e) { favStore = {}; } }
+function saveFav() { try { localStorage.setItem(FAV_KEY, JSON.stringify(favStore)); } catch (e) {} }
+const isFav = (id) => !!favStore[id];
+function setFav(id, val) { if (val) favStore[id] = 1; else delete favStore[id]; saveFav(); }
+function allFavCards() { const out = []; DATA.sets.forEach((s) => s.cards.forEach((c) => { if (isFav(c.id)) out.push(c); })); return out; }
+
+/* Indstillinger (kun ubrugte, tema, intro, sidste position) */
+const OPT_KEY = "samtalekort:opt:v1";
+let opt = { onlyUnused: false, seenIntro: false, theme: "auto", last: null };
+let onlyUnused = false;
+function loadOpt() {
+  try { const o = JSON.parse(localStorage.getItem(OPT_KEY) || "{}"); if (o) opt = Object.assign(opt, o); } catch (e) {}
+  onlyUnused = !!opt.onlyUnused;
+}
+function saveOpt() { opt.onlyUnused = onlyUnused; try { localStorage.setItem(OPT_KEY, JSON.stringify(opt)); } catch (e) {} }
+
+/* ================================================================
+   APP-LOGIK
+   ================================================================ */
+const $ = (id) => document.getElementById(id);
+const state = { setIndex: null, cardIndex: 0, deck: [], source: null };
+
+function renderHome() {
+  $("homeTitle").textContent = DATA.title;
+  $("homeSub").textContent = DATA.subtitle || "";
+  updateFavBtn();
+  updateResumeBtn();
+  const grid = $("setGrid");
+  grid.innerHTML = "";
+  DATA.sets.forEach((set, i) => {
+    const n = set.cards.length;
+    const usedCount = set.cards.filter((c) => isUsed(c.id)).length;
+    const card = document.createElement("div");
+    card.className = "set-card";
+    if (set.accent) card.style.setProperty("--set-accent", set.accent);
+    const thumbStyle = set.image ? `style="background-image:url('${set.image}')"` : "";
+    const thumbInner = set.image ? "" : (set.emoji || "💬");
+    const meta = `${n} kort${usedCount ? ` · <b>${usedCount} brugt</b>` : ""}`;
+    card.innerHTML = `
+      <button class="set-open" aria-label="Åbn ${escapeHtml(set.title)}"></button>
+      <div class="set-thumb" ${thumbStyle}>${thumbInner}</div>
+      <div class="set-body">
+        <h2>${escapeHtml(set.title)}</h2>
+        ${set.description ? `<p>${escapeHtml(set.description)}</p>` : ""}
+        <span class="set-meta-line">${meta}</span>
+      </div>
+      <button class="set-shuffle" aria-label="Tilfældigt kort fra ${escapeHtml(set.title)}" title="Tilfældigt kort">?</button>`;
+    card.querySelector(".set-open").addEventListener("click", () => openSet(i));
+    card.querySelector(".set-shuffle").addEventListener("click", (ev) => { ev.stopPropagation(); openSetRandom(i); });
+    grid.appendChild(card);
+  });
+  $("versionLabel").textContent = "Version " + APP_VERSION + (memoryOK ? "" : " · (hukommelse er slået fra i forhåndsvisning)");
+}
+
+function updateFavBtn() {
+  const n = allFavCards().length;
+  $("favBtn").textContent = "♥ Favoritter" + (n ? ` (${n})` : "");
+}
+
+// Bygger det aktuelle "dæk" (liste af kort) ud fra kilden
+function buildDeck(keepId) {
+  let cards;
+  if (state.source && state.source.type === "fav") {
+    cards = allFavCards();
+  } else {
+    cards = DATA.sets[state.setIndex].cards.slice();
+    if (onlyUnused) cards = cards.filter((c) => !isUsed(c.id));
+  }
+  state.deck = cards;
+  let idx = 0;
+  if (keepId) { const p = cards.findIndex((c) => c.id === keepId); if (p >= 0) idx = p; }
+  state.cardIndex = cards.length ? Math.max(0, Math.min(idx, cards.length - 1)) : 0;
+}
+
+function enterDeck(title) {
+  $("homeScreen").classList.add("hidden");
+  $("deckScreen").classList.add("active");
+  $("backBtn").style.display = "inline-flex";
+  $("menuBtn").style.display = "inline-flex";
+  $("setLabel").textContent = title;
+  const setMode = state.source.type === "set";
+  $("resetSetBtn").style.display = setMode ? "" : "none";
+  $("onlyUnusedBtn").style.display = setMode ? "" : "none";
+  $("nextUnusedBtn").style.display = setMode ? "" : "none";
+  syncOnlyUnusedBtn();
+  renderDeck(true, "right");
+  if (!opt.seenIntro) showIntro();
+}
+
+function openSet(i, startId) {
+  state.setIndex = i;
+  state.source = { type: "set", index: i };
+  buildDeck(startId);
+  enterDeck(DATA.sets[i].title);
+}
+function openSetRandom(i) {
+  const set = DATA.sets[i];
+  let pool = set.cards.filter((c) => !isUsed(c.id));
+  if (!pool.length) pool = set.cards.slice();
+  const startId = pool[Math.floor(Math.random() * pool.length)].id;
+  openSet(i, startId);
+}
+function openFavorites() {
+  state.source = { type: "fav" };
+  state.setIndex = null;
+  buildDeck();
+  enterDeck("♥ Favoritter");
+}
+
+function goHome() {
+  state.setIndex = null;
+  state.source = null;
+  closeMenu();
+  $("deckScreen").classList.remove("active");
+  $("homeScreen").classList.remove("hidden");
+  $("backBtn").style.display = "none";
+  $("menuBtn").style.display = "none";
+  renderHome();
+}
+
+// Bygger et kort-element for et givet index i dækket (uden ind-animation)
+function makeCardEl(idx) {
+  const card = state.deck[idx];
+  const total = state.deck.length;
+  let accent = card.accent;
+  if (!accent) {
+    if (state.setIndex != null) accent = DATA.sets[state.setIndex].accent;
+    else { const owner = DATA.sets.find((s) => s.cards.some((c) => c.id === card.id)); accent = owner ? owner.accent : "#ffe0cc"; }
+  }
+  const used = isUsed(card.id);
+  const fav = isFav(card.id);
+
+  const el = document.createElement("div");
+  el.className = "card" + (card.image ? "" : " no-img") + (used ? " is-used" : "");
+  el.style.setProperty("--accent", accent || "#ffe0cc");
+  el.innerHTML = `
+    ${card.image ? `<div class="card-img" style="background-image:url('${card.image}')"></div>` : `<div class="card-img"></div>`}
+    <div class="card-top">
+      <span class="card-index">Kort ${idx + 1} af ${total}</span>
+      <div class="card-actions">
+        <button class="icon-btn fav${fav ? " active" : ""}" aria-label="Favorit" title="Gem som favorit">${fav ? "♥" : "♡"}</button>
+        <button class="icon-btn share" aria-label="Del kort" title="Del">📤</button>
+      </div>
+    </div>
+    ${card.title ? `<div class="card-title">${escapeHtml(card.title)}</div>` : ""}
+    ${card.text ? `<div class="card-text">${escapeHtml(card.text)}</div>` : `<div style="flex:1"></div>`}
+    <button class="card-used-btn">${used ? "✓ Brugt — fortryd" : "Markér som brugt"}</button>`;
+
+  const favBtn = el.querySelector(".icon-btn.fav");
+  favBtn.addEventListener("click", (ev) => { ev.stopPropagation(); toggleFav(card, el, favBtn); });
+  el.querySelector(".icon-btn.share").addEventListener("click", (ev) => { ev.stopPropagation(); shareCard(card); });
+  el.querySelector(".card-used-btn").addEventListener("click", (ev) => { ev.stopPropagation(); onUsedClick(card, el, ev.currentTarget); });
+  return el;
+}
+
+function toggleFav(card, el, favBtn) {
+  const now = !isFav(card.id);
+  setFav(card.id, now);
+  favBtn.classList.toggle("active", now);
+  favBtn.textContent = now ? "♥" : "♡";
+  // I favorit-visningen: fjern kortet fra bunken når man tager favoritten væk
+  if (!now && state.source && state.source.type === "fav" && el === $("stage").querySelector(".card")) {
+    const nb = state.deck[state.cardIndex + 1] || state.deck[state.cardIndex - 1];
+    buildDeck(nb ? nb.id : null);
+    renderDeck(true, "right");
+  }
+}
+
+function shareCard(card) {
+  const text = card.title || card.text || "";
+  if (navigator.share) {
+    navigator.share({ text: text }).catch(() => {});
+  } else if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showBanner("Kopieret til udklipsholderen.", "OK", hideBanner))
+      .catch(() => showBanner(text, "OK", hideBanner));
+  } else {
+    showBanner(text, "OK", hideBanner);
+  }
+}
+
+function onUsedClick(card, el, btn) {
+  const nowUsed = !isUsed(card.id);
+  setUsed(card.id, nowUsed);
+  el.classList.toggle("is-used", nowUsed);
+  btn.textContent = nowUsed ? "✓ Brugt — fortryd" : "Markér som brugt";
+  updateDots();
+  updateFavBtn();
+  if (!(nowUsed && el === $("stage").querySelector(".card"))) return;
+
+  // Fejring når hele sættet er gennemført
+  if (state.source.type === "set" && DATA.sets[state.setIndex].cards.every((c) => isUsed(c.id))) {
+    setTimeout(() => celebrate(state.setIndex), 260);
+    return;
+  }
+
+  if (onlyUnused && state.source.type === "set") {
+    // brugt kort forlader bunken
+    const nb = state.deck[state.cardIndex + 1];
+    if (nb) {
+      animateToIndex(state.cardIndex + 1);
+      setTimeout(() => { buildDeck(nb.id); renderDeck(false, "right"); }, 520);
+    } else {
+      setTimeout(() => { buildDeck(); renderDeck(false, "left"); }, 240);
+    }
+  } else if (state.cardIndex < state.deck.length - 1) {
+    setTimeout(() => animateToIndex(state.cardIndex + 1), 200);
+  }
+}
+
+function renderEmpty() {
+  const stage = $("stage");
+  let msg = "Ingen kort.", label = "", fn = null;
+  if (state.source && state.source.type === "fav") {
+    msg = "Ingen favoritter endnu.\nTryk på ♡ på et kort for at gemme det her.";
+  } else if (onlyUnused) {
+    msg = "Alle kort i temaet er brugt 🎉"; label = "Vis alle igen"; fn = () => setOnlyUnused(false);
+  }
+  const el = document.createElement("div");
+  el.className = "card no-img";
+  el.innerHTML = `<div style="flex:1"></div><div class="empty-msg">${escapeHtml(msg)}</div>${label ? `<button class="card-used-btn" style="align-self:center;margin-top:20px" id="emptyBtn">${escapeHtml(label)}</button>` : ""}<div style="flex:1"></div>`;
+  stage.innerHTML = "";
+  stage.appendChild(el);
+  if (fn) el.querySelector("#emptyBtn").addEventListener("click", fn);
+  $("dots").innerHTML = "";
+  $("counter").textContent = "0 / 0";
+  $("prevBtn").disabled = true;
+  $("nextBtn").disabled = true;
+}
+
+function renderDeck(animate, dir) {
+  if (!state.deck.length) { renderEmpty(); return; }
+  if (state.cardIndex > state.deck.length - 1) state.cardIndex = state.deck.length - 1;
+  renderCard(dir || "right", animate);
+}
+
+function renderCard(direction, animate) {
+  const total = state.deck.length;
+  const el = makeCardEl(state.cardIndex);
+  if (animate !== false) el.classList.add(direction === "left" ? "enter-left" : "enter-right");
+
+  const stage = $("stage");
+  stage.innerHTML = "";
+  stage.appendChild(el);
+
+  buildDots();
+  $("counter").textContent = `${state.cardIndex + 1} / ${total}`;
+  $("prevBtn").disabled = state.cardIndex === 0;
+  $("nextBtn").disabled = state.cardIndex === total - 1;
+  saveLast();
+  const c = state.deck[state.cardIndex];
+  if (c) $("live").textContent = "Kort " + (state.cardIndex + 1) + " af " + total + ": " + (c.title || c.text || "");
+}
+
+function buildDots() {
+  const dots = $("dots");
+  dots.innerHTML = "";
+  state.deck.forEach((c, i) => {
+    const d = document.createElement("button");
+    d.className = "dot" + (i === state.cardIndex ? " active" : "") + (isUsed(c.id) ? " used" : "");
+    d.setAttribute("aria-label", "Kort " + (i + 1));
+    d.addEventListener("click", () => jumpTo(i));
+    dots.appendChild(d);
+  });
+}
+function updateDots() {
+  $("dots").querySelectorAll(".dot").forEach((d, i) => {
+    if (state.deck[i]) d.classList.toggle("used", isUsed(state.deck[i].id));
+  });
+}
+
+/* Tilfældigt / shuffle */
+function shuffleDraw() {
+  const n = state.deck.length;
+  if (!n) return;
+  let pool = state.deck.map((c, i) => i).filter((i) => !isUsed(state.deck[i].id));
+  if (!pool.length) pool = state.deck.map((c, i) => i);
+  if (pool.length > 1) pool = pool.filter((i) => i !== state.cardIndex);
+  animateToIndex(pool[Math.floor(Math.random() * pool.length)]);
+}
+
+/* Kun ubrugte */
+function syncOnlyUnusedBtn() {
+  const b = $("onlyUnusedBtn");
+  b.textContent = "Kun ubrugte: " + (onlyUnused ? "til" : "fra");
+  b.classList.toggle("on", onlyUnused);
+}
+function setOnlyUnused(val) {
+  onlyUnused = val; saveOpt(); syncOnlyUnusedBtn();
+  if (state.source && state.source.type === "set") {
+    const keep = state.deck[state.cardIndex] && state.deck[state.cardIndex].id;
+    buildDeck(keep);
+    renderDeck(false, "right");
+  }
+}
+
+function next(animate) {
+  const total = state.deck.length;
+  if (state.cardIndex < total - 1) { state.cardIndex++; renderCard("right", animate); }
+}
+function prev(animate) { if (state.cardIndex > 0) { state.cardIndex--; renderCard("left", animate); } }
+
+/* Glidende overgang til et vilkårligt kort — samme peek-effekt som swipe.
+   Bruges af knapper, piletaster, prikker, "brugt", shuffle og "næste ubrugte". */
+let busy = false;
+function animateToIndex(targetIndex) {
+  const total = state.deck.length;
+  if (busy || targetIndex < 0 || targetIndex >= total || targetIndex === state.cardIndex) return;
+  const stage = $("stage");
+  const cur = stage.querySelector(".card");
+  const goingNext = targetIndex > state.cardIndex;
+  haptic();
+  if (reduceMotion || !cur) { state.cardIndex = targetIndex; renderCard(goingNext ? "right" : "left", false); return; }
+  busy = true;
+  const W = cur.offsetWidth || 360, GAP = 14;
+  const ghost = makeCardEl(targetIndex);
+  ghost.style.position = "absolute";
+  ghost.style.inset = "0";
+  ghost.style.margin = "auto";
+  ghost.style.pointerEvents = "none";
+  ghost.style.transition = "none";
+  ghost.style.transform = "translateX(" + (goingNext ? (W + GAP) : -(W + GAP)) + "px)";
+  stage.appendChild(ghost);
+  void ghost.offsetWidth; // fremtving reflow så overgangen animerer
+  cur.style.transition = "transform .3s ease, opacity .3s ease";
+  ghost.style.transition = "transform .3s ease";
+  cur.style.transform = "translateX(" + (goingNext ? -(W + GAP) : (W + GAP)) + "px) rotate(" + (goingNext ? -2 : 2) + "deg)";
+  cur.style.opacity = "0.3";
+  ghost.style.transform = "translateX(0px)";
+  setTimeout(() => {
+    state.cardIndex = targetIndex;
+    renderCard(goingNext ? "right" : "left", false); // sæt det nye kort statisk på plads
+    busy = false;
+  }, 300);
+}
+function goNext() { animateToIndex(state.cardIndex + 1); }
+function goPrev() { animateToIndex(state.cardIndex - 1); }
+function jumpTo(i) { animateToIndex(i); }
+function nextUnused() {
+  const n = state.deck.length;
+  if (!n) return;
+  for (let step = 1; step <= n; step++) {
+    const i = (state.cardIndex + step) % n;
+    if (!isUsed(state.deck[i].id)) { animateToIndex(i); return; }
+  }
+  // alle brugt
+  $("nextUnusedBtn").textContent = "Alle kort er brugt ✓";
+  setTimeout(() => { $("nextUnusedBtn").textContent = "Næste ubrugte →"; }, 1400);
+}
+function resetSet() {
+  if (!state.source || state.source.type !== "set") return;
+  DATA.sets[state.setIndex].cards.forEach((c) => setUsed(c.id, false));
+  const keep = state.deck[state.cardIndex] && state.deck[state.cardIndex].id;
+  buildDeck(keep);
+  renderDeck(false, "right");
+}
+function resetAll() {
+  usedStore = {}; saveUsed(); renderHome();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ---- Tema (auto/lys/mørk) ---- */
+function systemDark() { try { return matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { return false; } }
+function isDark() { return opt.theme === "dark" || (opt.theme === "auto" && systemDark()); }
+function applyTheme() {
+  const dark = isDark();
+  document.documentElement.classList.toggle("dark", dark);
+  const tc = document.querySelector('meta[name="theme-color"]');
+  if (tc) tc.setAttribute("content", dark ? "#241d29" : "#ffcbb0");
+  const label = opt.theme === "auto" ? "Auto" : (opt.theme === "dark" ? "Mørk" : "Lys");
+  if ($("themeBtn")) $("themeBtn").textContent = "Tema: " + label;
+}
+function cycleTheme() {
+  opt.theme = opt.theme === "auto" ? "light" : (opt.theme === "light" ? "dark" : "auto");
+  saveOpt(); applyTheme();
+}
+
+/* ---- Haptik + reduceret bevægelse ---- */
+let reduceMotion = false;
+function haptic() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {} }
+
+/* ---- Intro-vejledning ---- */
+function showIntro() { $("introBackdrop").classList.add("show"); $("intro").classList.add("show"); focusModal($("intro")); }
+function closeIntro() { $("introBackdrop").classList.remove("show"); $("intro").classList.remove("show"); opt.seenIntro = true; saveOpt(); }
+
+/* ---- Bekræft-dialog ---- */
+let confirmFn = null;
+function askConfirm(text, onOk) {
+  $("confirmText").textContent = text;
+  confirmFn = onOk;
+  $("confirmBackdrop").classList.add("show"); $("confirm").classList.add("show");
+  focusModal($("confirm"));
+}
+function closeConfirm() { $("confirmBackdrop").classList.remove("show"); $("confirm").classList.remove("show"); confirmFn = null; }
+
+/* ---- Om-skærm ---- */
+function openAbout() {
+  const sets = DATA.sets.length;
+  const cards = DATA.sets.reduce((n, s) => n + s.cards.length, 0);
+  $("aboutText").textContent = "En Meanwhile-app til gode samtaler.\n" + sets + " sæt · " + cards + " kort · version " + APP_VERSION;
+  $("aboutBackdrop").classList.add("show"); $("about").classList.add("show");
+  focusModal($("about"));
+}
+function closeAbout() { $("aboutBackdrop").classList.remove("show"); $("about").classList.remove("show"); }
+
+/* ---- Fejring når et sæt er gennemført ---- */
+function celebrate(setIndex) {
+  $("celebrateText").textContent = "I har været igennem alle kort i “" + DATA.sets[setIndex].title + "”.";
+  $("celebrateBackdrop").classList.add("show"); $("celebrate").classList.add("show");
+  focusModal($("celebrate"));
+  haptic();
+  if (!reduceMotion) fireConfetti();
+}
+function closeCelebrate() { $("celebrateBackdrop").classList.remove("show"); $("celebrate").classList.remove("show"); }
+
+function fireConfetti() {
+  const cv = $("confetti");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const W = cv.width = window.innerWidth, H = cv.height = window.innerHeight;
+  cv.style.display = "block";
+  const colors = ["#ffcf6b", "#ffc2d4", "#c9e7d0", "#cfe0ff", "#e2d1ff", "#ffb3b3", "#a9dcc0"];
+  const P = [];
+  for (let i = 0; i < 110; i++) P.push({
+    x: Math.random() * W, y: -20 - Math.random() * H * 0.4, r: 5 + Math.random() * 7,
+    c: colors[(Math.random() * colors.length) | 0], vy: 2 + Math.random() * 3.5,
+    vx: -1.5 + Math.random() * 3, rot: Math.random() * 6.28, vr: -0.25 + Math.random() * 0.5
+  });
+  let start = null;
+  function frame(t) {
+    if (start === null) start = t;
+    const e = t - start;
+    ctx.clearRect(0, 0, W, H);
+    for (const p of P) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.02; p.rot += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = e > 1600 ? Math.max(0, 1 - (e - 1600) / 700) : 1;
+      ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6);
+      ctx.restore();
+    }
+    if (e < 2300) requestAnimationFrame(frame);
+    else { ctx.clearRect(0, 0, W, H); cv.style.display = "none"; }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---- Fokus i dialoger ---- */
+function focusModal(m) { const f = m.querySelector("button"); if (f) setTimeout(() => { try { f.focus(); } catch (e) {} }, 30); }
+
+/* ---- Fortsæt hvor du slap ---- */
+function saveLast() {
+  if (state.source && state.source.type === "set" && state.deck[state.cardIndex]) {
+    opt.last = { setIndex: state.setIndex, cardId: state.deck[state.cardIndex].id };
+    saveOpt();
+  }
+}
+function updateResumeBtn() {
+  const b = $("resumeBtn");
+  if (opt.last && DATA.sets[opt.last.setIndex]) {
+    b.textContent = "▶ Fortsæt: " + DATA.sets[opt.last.setIndex].title;
+    b.style.display = "inline-flex";
+  } else { b.style.display = "none"; }
+}
+function resumeLast() {
+  if (opt.last && DATA.sets[opt.last.setIndex]) openSet(opt.last.setIndex, opt.last.cardId);
+}
+
+/* ---- Event listeners ---- */
+$("nextBtn").addEventListener("click", goNext);
+$("prevBtn").addEventListener("click", goPrev);
+$("backBtn").addEventListener("click", goHome);
+$("nextUnusedBtn").addEventListener("click", nextUnused);
+$("resetSetBtn").addEventListener("click", () => askConfirm("Nulstil alle brugte kort i dette tema?", resetSet));
+$("resetAllBtn").addEventListener("click", () => askConfirm("Nulstil brugte kort i ALLE temaer?", resetAll));
+$("favBtn").addEventListener("click", openFavorites);
+$("shuffleBtn").addEventListener("click", shuffleDraw);
+$("onlyUnusedBtn").addEventListener("click", () => setOnlyUnused(!onlyUnused));
+$("themeBtn").addEventListener("click", cycleTheme);
+$("guideBtn").addEventListener("click", () => { closeMenu(); showIntro(); });
+$("resumeBtn").addEventListener("click", resumeLast);
+$("introClose").addEventListener("click", closeIntro);
+$("introBackdrop").addEventListener("click", closeIntro);
+$("confirmCancel").addEventListener("click", closeConfirm);
+$("confirmBackdrop").addEventListener("click", closeConfirm);
+$("confirmOk").addEventListener("click", () => { const f = confirmFn; closeConfirm(); if (f) f(); });
+$("aboutBtn").addEventListener("click", openAbout);
+$("aboutClose").addEventListener("click", closeAbout);
+$("aboutBackdrop").addEventListener("click", closeAbout);
+$("celebrateClose").addEventListener("click", closeCelebrate);
+$("celebrateBackdrop").addEventListener("click", closeCelebrate);
+$("celebrateReset").addEventListener("click", () => { closeCelebrate(); resetSet(); });
+$("celebrateNext").addEventListener("click", () => { const t = (state.setIndex + 1) % DATA.sets.length; closeCelebrate(); goToSet(t); });
+
+/* Menu (bund-ark bag ⋯) */
+function openMenu() { $("menuBackdrop").classList.add("show"); $("menu").classList.add("show"); }
+function closeMenu() { $("menuBackdrop").classList.remove("show"); $("menu").classList.remove("show"); }
+$("menuBtn").addEventListener("click", openMenu);
+$("menuBackdrop").addEventListener("click", closeMenu);
+// Luk menuen når en handling er valgt (dog ikke ved "kun ubrugte"-kontakten)
+$("shuffleBtn").addEventListener("click", closeMenu);
+$("nextUnusedBtn").addEventListener("click", closeMenu);
+$("resetSetBtn").addEventListener("click", closeMenu);
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if ($("intro").classList.contains("show")) return closeIntro();
+    if ($("confirm").classList.contains("show")) return closeConfirm();
+    if ($("about").classList.contains("show")) return closeAbout();
+    if ($("celebrate").classList.contains("show")) return closeCelebrate();
+    if ($("menu").classList.contains("show")) return closeMenu();
+    if (state.source) return goHome();
+    return;
+  }
+  if (!state.source) return;
+  if (document.querySelector(".modal.show") || $("menu").classList.contains("show")) return;
+  if (e.key === "ArrowRight") goNext();
+  else if (e.key === "ArrowLeft") goPrev();
+});
+
+/* Fokusfælde i åbne dialoger (tilgængelighed) */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+  const m = document.querySelector(".modal.show");
+  if (!m) return;
+  const f = Array.prototype.slice.call(m.querySelectorAll("button")).filter((x) => !x.disabled);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
+/* Accentfarve for et kort (bruges til ghost-kort) */
+function cardAccent(card) {
+  if (card.accent) return card.accent;
+  if (state.setIndex != null) return DATA.sets[state.setIndex].accent || "#ffe0cc";
+  const owner = DATA.sets.find((s) => s.cards.some((c) => c.id === card.id));
+  return owner ? owner.accent : "#ffe0cc";
+}
+/* Første synlige kort i et sæt (respekterer "kun ubrugte") */
+function firstVisibleCardOfSet(i) {
+  let cards = DATA.sets[i].cards;
+  if (onlyUnused) { const u = cards.filter((c) => !isUsed(c.id)); if (u.length) cards = u; }
+  return { card: cards[0], total: cards.length };
+}
+/* Ikke-interaktivt ghost-kort til peek-effekten */
+function makeGhostCard(card, idx, total, accent) {
+  const used = isUsed(card.id), fav = isFav(card.id);
+  const el = document.createElement("div");
+  el.className = "card" + (card.image ? "" : " no-img") + (used ? " is-used" : "");
+  el.style.setProperty("--accent", accent || "#ffe0cc");
+  el.innerHTML = `
+    ${card.image ? `<div class="card-img" style="background-image:url('${card.image}')"></div>` : `<div class="card-img"></div>`}
+    <div class="card-top">
+      <span class="card-index">Kort ${idx + 1} af ${total}</span>
+      <div class="card-actions">
+        <button class="icon-btn fav${fav ? " active" : ""}" tabindex="-1">${fav ? "♥" : "♡"}</button>
+        <button class="icon-btn share" tabindex="-1">📤</button>
+      </div>
+    </div>
+    ${card.title ? `<div class="card-title">${escapeHtml(card.title)}</div>` : ""}
+    ${card.text ? `<div class="card-text">${escapeHtml(card.text)}</div>` : `<div style="flex:1"></div>`}
+    <button class="card-used-btn" tabindex="-1">${used ? "✓ Brugt — fortryd" : "Markér som brugt"}</button>`;
+  return el;
+}
+/* Skift til et andet sæt (uden vandret ind-animation) */
+function goToSet(i) {
+  state.setIndex = i;
+  state.source = { type: "set", index: i };
+  buildDeck();
+  $("setLabel").textContent = DATA.sets[i].title;
+  $("resetSetBtn").style.display = "";
+  $("onlyUnusedBtn").style.display = "";
+  $("nextUnusedBtn").style.display = "";
+  syncOnlyUnusedBtn();
+  renderDeck(false, "right");
+}
+
+/* ---- Swipe: vandret = skift kort, lodret = skift sæt; nabo peeker ind ---- */
+(function () {
+  const stage = $("stage");
+  const GAP = 14;
+  let startX = 0, startY = 0, startT = 0, axis = null, dragging = false;
+  let cur = null, ghost = null, ghostKey = "", ghostReset = "", setTargetIdx = -1, W = 0, H = 0;
+
+  function clearGhost() { if (ghost && ghost.parentNode) ghost.remove(); ghost = null; ghostKey = ""; ghostReset = ""; setTargetIdx = -1; }
+
+  function ensureGhost(kind, dir) {
+    const key = kind + dir;
+    if (ghostKey === key) return;
+    clearGhost();
+    ghostKey = key;
+    if (kind === "h") {
+      const total = state.deck.length;
+      const idx = dir < 0 ? state.cardIndex + 1 : state.cardIndex - 1;
+      if (idx < 0 || idx >= total) return;       // intet nabokort ved enderne
+      const c = state.deck[idx];
+      ghost = makeGhostCard(c, idx, total, cardAccent(c));
+      ghostReset = "translateX(" + (dir < 0 ? (W + GAP) : -(W + GAP)) + "px)";
+    } else {
+      if (!state.source || state.source.type !== "set") return;  // sæt-skift kun i sæt-tilstand
+      const N = DATA.sets.length;
+      if (N < 2) return;
+      const t = dir < 0 ? (state.setIndex + 1) % N : (state.setIndex - 1 + N) % N;
+      setTargetIdx = t;
+      const fv = firstVisibleCardOfSet(t);
+      ghost = makeGhostCard(fv.card, 0, fv.total, DATA.sets[t].accent);
+      ghostReset = "translateY(" + (dir < 0 ? (H + GAP) : -(H + GAP)) + "px)";
+    }
+    ghost.style.position = "absolute";
+    ghost.style.inset = "0";
+    ghost.style.margin = "auto";
+    ghost.style.pointerEvents = "none";
+    ghost.style.transition = "none";
+    ghost.style.transform = ghostReset;
+    stage.appendChild(ghost);
+  }
+
+  stage.addEventListener("touchstart", (e) => {
+    if (!state.source || busy || e.touches.length !== 1) return;
+    clearGhost();
+    cur = stage.querySelector(".card");
+    if (!cur) return;
+    W = cur.offsetWidth || 360;
+    H = cur.offsetHeight || 480;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startT = e.timeStamp;
+    axis = null;
+    dragging = true;
+    cur.style.animation = "none";
+    cur.style.transition = "none";
+  }, { passive: true });
+
+  stage.addEventListener("touchmove", (e) => {
+    if (!dragging || !cur) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (axis === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      axis = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+    }
+    // lodret i favorit-visning: gør ingenting
+    if (axis === "v" && (!state.source || state.source.type !== "set")) return;
+    e.preventDefault();
+
+    if (axis === "h") {
+      const dir = dx < 0 ? -1 : 1;
+      ensureGhost("h", dir);
+      const eff = ghost ? dx : dx * 0.28;      // modstand hvis intet nabokort
+      cur.style.transform = "translateX(" + eff + "px) rotate(" + (eff * 0.015) + "deg)";
+      cur.style.opacity = String(Math.max(0.5, 1 - Math.abs(eff) / 750));
+      if (ghost) { const base = dir < 0 ? (W + GAP) : -(W + GAP); ghost.style.transform = "translateX(" + (eff + base) + "px)"; }
+    } else {
+      const dir = dy < 0 ? -1 : 1;
+      ensureGhost("v", dir);
+      const eff = ghost ? dy : dy * 0.28;
+      cur.style.transform = "translateY(" + eff + "px)";
+      cur.style.opacity = String(Math.max(0.5, 1 - Math.abs(eff) / 850));
+      if (ghost) { const base = dir < 0 ? (H + GAP) : -(H + GAP); ghost.style.transform = "translateY(" + (eff + base) + "px)"; }
+    }
+  }, { passive: false });
+
+  function snapBack() {
+    cur.style.transition = "transform .24s ease, opacity .24s ease";
+    cur.style.transform = "";
+    cur.style.opacity = "";
+    if (ghost) {
+      const g = ghost, r = ghostReset;
+      g.style.transition = "transform .24s ease";
+      g.style.transform = r;
+      setTimeout(() => { if (g.parentNode) g.remove(); }, 260);
+      ghost = null; ghostKey = ""; setTargetIdx = -1;
+    }
+  }
+
+  function endDrag(e) {
+    if (!dragging || !cur) return;
+    dragging = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    const dt = e.timeStamp - startT;
+
+    if (axis === "h") {
+      const dir = dx < 0 ? -1 : 1;
+      const distThresh = Math.min(120, W * 0.4);
+      const vel = Math.abs(dx) / Math.max(1, dt);
+      const flick = vel > 0.8 && Math.abs(dx) > 55;
+      if (!!ghost && (Math.abs(dx) > distThresh || flick)) {
+        busy = true; haptic();
+        const goingNext = dir < 0;
+        const finish = () => { goingNext ? next(false) : prev(false); clearGhost(); busy = false; };
+        if (reduceMotion) { finish(); }
+        else {
+          cur.style.transition = "transform .28s ease, opacity .28s ease";
+          ghost.style.transition = "transform .28s ease";
+          cur.style.transform = "translateX(" + (goingNext ? -(W + GAP) : (W + GAP)) + "px)";
+          cur.style.opacity = "0.3";
+          ghost.style.transform = "translateX(0px)";
+          setTimeout(finish, 260);
+        }
+      } else { snapBack(); }
+    } else if (axis === "v") {
+      const dir = dy < 0 ? -1 : 1;
+      const distThresh = Math.min(160, H * 0.28);
+      const vel = Math.abs(dy) / Math.max(1, dt);
+      const flick = vel > 0.8 && Math.abs(dy) > 60;
+      if (!!ghost && setTargetIdx >= 0 && (Math.abs(dy) > distThresh || flick)) {
+        busy = true; haptic();
+        const t = setTargetIdx;
+        const finish = () => { goToSet(t); clearGhost(); busy = false; };
+        if (reduceMotion) { finish(); }
+        else {
+          cur.style.transition = "transform .3s ease, opacity .3s ease";
+          ghost.style.transition = "transform .3s ease";
+          cur.style.transform = "translateY(" + (dir < 0 ? -(H + GAP) : (H + GAP)) + "px)";
+          cur.style.opacity = "0.3";
+          ghost.style.transform = "translateY(0px)";
+          setTimeout(finish, 280);
+        }
+      } else { snapBack(); }
+    }
+    axis = null; cur = null;
+  }
+  stage.addEventListener("touchend", endDrag, { passive: true });
+  stage.addEventListener("touchcancel", endDrag, { passive: true });
+})();
+
+/* ================================================================
+   BANNER (opdatering + installation)
+   ================================================================ */
+function showBanner(text, actionLabel, onAction) {
+  $("bannerText").textContent = text;
+  const a = $("bannerAction");
+  a.textContent = actionLabel;
+  a.onclick = onAction;
+  $("banner").classList.add("show");
+}
+function hideBanner() { $("banner").classList.remove("show"); }
+$("bannerClose").addEventListener("click", hideBanner);
+
+/* ---- Installér som PWA (Android/desktop Chrome) ---- */
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  $("installBtn").style.display = "inline-flex";
+});
+$("installBtn").addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  $("installBtn").style.display = "none";
+});
+window.addEventListener("appinstalled", () => { $("installBtn").style.display = "none"; });
+
+/* ---- Service worker + versionsopdatering ---- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      reg.addEventListener("updatefound", () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener("statechange", () => {
+          if (nw.state === "installed" && navigator.serviceWorker.controller) {
+            showBanner("Ny version klar.", "Genindlæs", () => {
+              reg.waiting && reg.waiting.postMessage({ type: "SKIP_WAITING" });
+            });
+          }
+        });
+      });
+
+      // Manuel "Søg efter opdatering"
+      $("checkUpdateBtn").addEventListener("click", () => {
+        reg.update().then(() => {
+          if (!reg.waiting && !reg.installing) {
+            showBanner("Du har allerede den nyeste version (" + APP_VERSION + ").", "OK", hideBanner);
+          }
+        });
+      });
+    }).catch(() => {});
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      location.reload();
+    });
+  });
+} else {
+  $("checkUpdateBtn").addEventListener("click", () =>
+    showBanner("Opdateringer virker kun, når appen ligger på en webadresse (ikke som lokal fil).", "OK", hideBanner));
+}
+
+/* ---- Start ---- */
+loadUsed();
+loadFav();
+loadOpt();
+applyTheme();
+try {
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (opt.theme === "auto") applyTheme(); });
+  const rm = matchMedia("(prefers-reduced-motion: reduce)");
+  reduceMotion = rm.matches;
+  rm.addEventListener("change", (e) => { reduceMotion = e.matches; });
+} catch (e) {}
+renderHome();
+
+/* ---- Splash: vis kort, ton blødt væk efter en fast varighed ---- */
+(function initSplash() {
+  const s = $("splash");
+  if (!s) return;
+  let done = false;
+  const hide = () => {
+    if (done) return;
+    done = true;
+    if (reduceMotion) { if (s.parentNode) s.remove(); return; }
+    s.classList.add("hide");
+    setTimeout(() => { if (s.parentNode) s.remove(); }, 550);
+  };
+  setTimeout(hide, 1250);
+})();
+</script>
+</body>
+</html>
