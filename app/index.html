@@ -497,7 +497,7 @@ const BUILD = "__BUILD__";              // stemples automatisk i CI
    stabile over versioner, så hukommelsen følger med.
    Felter: set{ id, title, description?, emoji?, image?, accent?, cards[] }
            card{ id, title, text?, image?, accent? }
-   'title' er selve spørgsmålet — det er det, alle 316 kort bruger.
+   'title' er selve spørgsmålet — det er det, alle kortene bruger.
    'text' er en valgfri uddybning under spørgsmålet.
    Billeder er valgfri overalt.
    ================================================================ */
@@ -525,6 +525,7 @@ const DATA = {
         { id: "c130", title: "Hvor vil du helst bo, når vi bliver gamle?" },
         { id: "c131", title: "Hvad glæder du dig mest til ved fremtiden med mig?" },
         { id: "c132", title: "Hvis vi kunne tage ét år fri sammen, hvad skulle vi lave?" },
+        { id: "c317", title: "Hvad drømmer du om for os det næste år?" },
       ]
     },
     {
@@ -563,6 +564,7 @@ const DATA = {
         { id: "c138", title: "Hvornår er du mest stolt af os?" },
         { id: "c139", title: "Hvad ville du ønske, vi gjorde noget mere af?" },
         { id: "c140", title: "Beskriv en helt almindelig dag, der alligevel var perfekt." },
+        { id: "c318", title: "Hvad er du taknemmelig for ved os i dag?" },
       ]
     },
     {
@@ -597,6 +599,7 @@ const DATA = {
         { id: "c146", title: "Hvem har formet den, du er i dag?" },
         { id: "c147", title: "Hvad betyder et godt liv for dig?" },
         { id: "c148", title: "Hvornår er du mest tro mod dig selv?" },
+        { id: "c319", title: "Hvad har gjort dig til den, du er?" },
       ]
     },
     {
@@ -634,6 +637,8 @@ const DATA = {
         { id: "c154", title: "Hvad har du brug for, når du har det svært?" },
         { id: "c155", title: "Hvad er du holdt op med at bekymre dig om?" },
         { id: "c156", title: "Hvornår føler du dig mest levende?" },
+        { id: "c320", title: "Hvordan har du det inderst inde for tiden?" },
+        { id: "c321", title: "Hvad er du bange for at miste?" },
       ]
     },
     {
@@ -653,10 +658,13 @@ const DATA = {
         { id: "c158", title: "Hvad kan jeg gøre for, at du føler dig mere tryg?" },
         { id: "c159", title: "Hvordan viser du bedst, at du holder af nogen?" },
         { id: "c160", title: "Hvad har vi lært af hinanden?" },
+        { id: "c322", title: "Hvad har du brug for fra mig lige nu?" },
+        { id: "c323", title: "Hvornår føler du dig mest tryg hos mig?" },
+        { id: "c324", title: "Hvad har vi været igennem, som gjorde os stærkere?" },
       ]
     },
     {
-      id: "udfordringer", title: "Udfordringer & ærlighed", description: "De ærlige kort — irritationer, skænderier og det skrøbelige.",
+      id: "udfordringer", title: "Udfordringer & ærlighed", description: "De ærlige kort — når det er svært mellem jer: irritationer, skænderier og det skrøbelige.",
       emoji: "🌦️", accent: "#ffd6c2",
       cards: [
         { id: "c37", title: "Hvordan har du det med vores forhold lige nu?" },
@@ -694,7 +702,28 @@ const DATA = {
       ]
     },
     {
-      id: "boern", title: "For de små (ca. 8 år)", description: "Sjove, fantasifulde spørgsmål til de yngste.",
+      id: "de-mindste", title: "De mindste (ca. 4-5 år)", description: "Korte, konkrete spørgsmål til de allermindste.",
+      emoji: "🧸", accent: "#d9edb3",
+      cards: [
+        { id: "c325", title: "Hvad var det sjoveste, du legede i dag?" },
+        { id: "c326", title: "Hvilket dyr kunne du tænke dig at være?" },
+        { id: "c327", title: "Hvad kan du bedst lide at spise?" },
+        { id: "c328", title: "Hvem holder du rigtig meget af?" },
+        { id: "c329", title: "Hvilken farve er den bedste i hele verden?" },
+        { id: "c330", title: "Hvad bliver du glad af?" },
+        { id: "c331", title: "Er der noget, du blev ked af i dag?" },
+        { id: "c332", title: "Hvad drømmer du om, når du sover?" },
+        { id: "c333", title: "Hvad kan du bedst lide at lave sammen med os derhjemme?" },
+        { id: "c334", title: "Hvis du havde en tryllestav, hvad ville du så lave?" },
+        { id: "c335", title: "Hvad synes du er lidt uhyggeligt?" },
+        { id: "c336", title: "Hvad er det bedste ved at være dig?" },
+        { id: "c337", title: "Hvilken sang kan du bedst lide at synge?" },
+        { id: "c338", title: "Hvad vil du gerne lave i morgen?" },
+        { id: "c339", title: "Hvem har du lyst til at give et kram?" },
+      ]
+    },
+    {
+      id: "boern", title: "For skolebørnene (ca. 6-9 år)", description: "Sjove og nære spørgsmål til skolebørnene — fra fjolleri til de vigtige snakke.",
       emoji: "🧒", accent: "#ffdf8a",
       cards: [
         { id: "c89", title: "Hvis du kunne få én superkraft, hvilken skulle det være — og hvad ville du bruge den til?" },
@@ -741,6 +770,95 @@ const DATA = {
         { id: "c170", title: "Hvis du var lærer for en dag, hvad ville du lære os?" },
         { id: "c171", title: "Hvad er den bedste dag, du kan huske?" },
         { id: "c172", title: "Hvis du bestemte aftensmaden hver dag, hvad blev det?" },
+        { id: "c340", title: "Hvad gjorde dig glad i dag?" },
+        { id: "c341", title: "Var der noget, der var svært i dag?" },
+        { id: "c342", title: "Hvem kan du godt lide at lege med — og hvorfor?" },
+        { id: "c343", title: "Hvad kunne du tænke dig at blive bedre til?" },
+        { id: "c344", title: "Hvad synes du er det bedste ved din familie?" },
+        { id: "c345", title: "Hvornår føler du dig tryg?" },
+        { id: "c346", title: "Hvad gør dig lidt bange nogle gange?" },
+        { id: "c347", title: "Hvilken historie vil du gerne have fortalt igen og igen?" },
+        { id: "c348", title: "Hvad vil du gerne drømme om i nat?" },
+        { id: "c349", title: "Hvis du kunne lave en helt ny højtid, hvad skulle man fejre?" },
+        { id: "c350", title: "Hvad synes du gør en dag rigtig god?" },
+        { id: "c351", title: "Hvad vil du gerne sige tak for i dag?" },
+      ]
+    },
+    {
+      id: "storre-born", title: "Større børn & unge (ca. 10-16 år)", description: "Ærlige kort til en snak med et større barn eller en ung.",
+      emoji: "🧑", accent: "#c3b8f0",
+      cards: [
+        { id: "c233", title: "Hvad forstår voksne ikke ved at være på din alder?" },
+        { id: "c234", title: "Hvornår føler du dig mest dig selv?" },
+        { id: "c235", title: "Hvad ville du ændre ved verden, hvis du kunne?" },
+        { id: "c236", title: "Hvad er du mest stolt af ved dig selv?" },
+        { id: "c237", title: "Hvad gør en god ven, synes du?" },
+        { id: "c238", title: "Hvornår er det svært at være ærlig?" },
+        { id: "c239", title: "Hvad drømmer du om for din fremtid, helt uden filter?" },
+        { id: "c240", title: "Hvad er du nervøs eller spændt på lige nu?" },
+        { id: "c241", title: "Hvad ville du gerne turde mere af?" },
+        { id: "c242", title: "Hvem ser du op til — og hvorfor?" },
+        { id: "c243", title: "Hvad vil du gerne have, vi voksne forstod bedre?" },
+        { id: "c244", title: "Hvordan er du en god ven mod dig selv?" },
+        { id: "c352", title: "Hvad var det bedste og det sværeste ved din dag?" },
+        { id: "c353", title: "Er der noget, du tit tænker på, som du ikke har fortalt nogen?" },
+        { id: "c354", title: "Hvad gør dig vred — og hvad gør du så?" },
+        { id: "c355", title: "Hvis du kunne ændre én regel derhjemme, hvad skulle det være?" },
+        { id: "c356", title: "Er der noget i skolen, der fylder for tiden?" },
+        { id: "c357", title: "Hvad synes du, jeg forstår godt — og hvad forstår jeg måske ikke helt?" },
+        { id: "c358", title: "Hvad ville du gøre, hvis du bestemte i en hel dag?" },
+        { id: "c359", title: "Hvad er det sværeste ved at være på din alder?" },
+        { id: "c360", title: "Hvad kunne du tænke dig, vi gjorde mere af sammen?" },
+        { id: "c361", title: "Hvordan har du det egentlig for tiden — helt ærligt?" },
+        { id: "c362", title: "Hvad fylder mest i dit hoved i denne tid?" },
+        { id: "c363", title: "Hvornår føler du dig mest presset?" },
+        { id: "c364", title: "Hvad er du virkelig god til, som andre måske ikke ser?" },
+        { id: "c365", title: "Hvem betyder mest for dig lige nu — og hvorfor?" },
+        { id: "c366", title: "Er der noget, du gerne vil tale om, men ikke rigtig ved hvordan?" },
+        { id: "c367", title: "Hvad giver dig energi, og hvad dræner dig?" },
+        { id: "c368", title: "Hvad synes du er urimeligt i verden eller i dit liv?" },
+        { id: "c369", title: "Hvad har du brug for fra mig — mere af, eller mindre af?" },
+        { id: "c370", title: "Er der noget, du går og er bekymret for?" },
+        { id: "c371", title: "Hvad er du taknemmelig for, når du tænker over det?" },
+      ]
+    },
+    {
+      id: "livet-set-tilbage", title: "Livet set tilbage", description: "Til mor, far eller bedsteforældre — få historien fortalt.",
+      emoji: "🌳", accent: "#e8cfa9",
+      cards: [
+        { id: "c372", title: "Hvordan var din barndom egentlig?" },
+        { id: "c373", title: "Hvad var du bange for, da du var ung?" },
+        { id: "c374", title: "Hvornår var du lykkeligst i dit liv?" },
+        { id: "c375", title: "Hvad er du mest stolt af at have gjort?" },
+        { id: "c376", title: "Er der noget, du fortryder — eller ville have gjort anderledes?" },
+        { id: "c377", title: "Hvem har betydet allermest for dig gennem livet?" },
+        { id: "c378", title: "Hvad drømte du om at blive, da du var barn?" },
+        { id: "c379", title: "Hvordan var det at blive forælder?" },
+        { id: "c380", title: "Hvad synes du, jeg skal huske, når livet bliver svært?" },
+        { id: "c381", title: "Hvad savner du fra dengang, du var ung?" },
+        { id: "c382", title: "Hvad har overrasket dig mest ved at blive ældre?" },
+        { id: "c383", title: "Hvad vil du gerne fortælle mig, som du aldrig har sagt?" },
+        { id: "c384", title: "Hvad gør dig glad i din hverdag nu?" },
+        { id: "c385", title: "Hvad håber du, jeg husker om dig?" },
+      ]
+    },
+    {
+      id: "god-ven", title: "Til en god ven", description: "Den snak, der går videre end “hvordan går det?”",
+      emoji: "☕", accent: "#d6c3b0",
+      cards: [
+        { id: "c386", title: "Hvordan har du det virkelig — ikke bare \"fint\"?" },
+        { id: "c387", title: "Hvad fylder mest i dit liv lige nu?" },
+        { id: "c388", title: "Hvornår mødtes vi egentlig, og hvad tænkte du om mig?" },
+        { id: "c389", title: "Hvad er du mest stolt af for tiden?" },
+        { id: "c390", title: "Hvad kæmper du med, som du ikke plejer at tale om?" },
+        { id: "c391", title: "Hvad drømmer du om, som du måske ikke har sagt højt?" },
+        { id: "c392", title: "Hvornår har du sidst grinet, så det gjorde ondt?" },
+        { id: "c393", title: "Hvad har ændret sig mest ved dig de seneste år?" },
+        { id: "c394", title: "Hvad sætter du mest pris på ved vores venskab?" },
+        { id: "c395", title: "Hvad har du brug for fra dine venner lige nu?" },
+        { id: "c396", title: "Hvad ville du gøre, hvis du turde?" },
+        { id: "c397", title: "Er der noget, du gerne vil have hjælp til?" },
+        { id: "c398", title: "Hvad skal vi love hinanden at gøre mere af?" },
       ]
     },
     {
@@ -777,6 +895,7 @@ const DATA = {
         { id: "c194", title: "Hvad savner du fra dengang, vi lige var blevet et par?" },
         { id: "c195", title: "Hvad er det bedste, vi nogensinde har lavet sammen?" },
         { id: "c196", title: "Hvornår vidste du, at du ville blive?" },
+        { id: "c399", title: "Hvad er du mest stolt af ved vores liv sammen?" },
       ]
     },
     {
@@ -795,6 +914,7 @@ const DATA = {
         { id: "c206", title: "Hvad er en god vane, vi burde starte sammen?" },
         { id: "c207", title: "Hvordan siger du bedst til, når du har brug for hjælp?" },
         { id: "c208", title: "Hvad ville gøre din hverdag 10 % lettere?" },
+        { id: "c400", title: "Hvad kan jeg gøre, der gør din hverdag lettere?" },
       ]
     },
     {
@@ -813,6 +933,14 @@ const DATA = {
         { id: "c218", title: "Hvem vil du gerne sige tak til?" },
         { id: "c219", title: "Hvad er du god til, som du er stolt af?" },
         { id: "c220", title: "Hvis du bestemte én familieregel, hvad blev det?" },
+        { id: "c401", title: "Var der noget, der var træls i dag?" },
+        { id: "c402", title: "Hvad gjorde du, som du er lidt stolt af?" },
+        { id: "c403", title: "Hvis vores familie var et dyr, hvilket ville vi så være?" },
+        { id: "c404", title: "Hvad er det bedste ved at være en del af vores familie?" },
+        { id: "c405", title: "Hvad kunne vi blive bedre til sammen?" },
+        { id: "c406", title: "Hvad skal vi huske at fejre snart?" },
+        { id: "c407", title: "Hvem savner du lige nu?" },
+        { id: "c408", title: "Hvad vil du ønske dig for hele familien?" },
       ]
     },
     {
@@ -834,29 +962,12 @@ const DATA = {
       ]
     },
     {
-      id: "storre-born", title: "Større børn (12+)", description: "Dybere kort til de større.",
-      emoji: "🧑", accent: "#c3b8f0",
-      cards: [
-        { id: "c233", title: "Hvad forstår voksne ikke ved at være på din alder?" },
-        { id: "c234", title: "Hvornår føler du dig mest dig selv?" },
-        { id: "c235", title: "Hvad ville du ændre ved verden, hvis du kunne?" },
-        { id: "c236", title: "Hvad er du mest stolt af ved dig selv?" },
-        { id: "c237", title: "Hvad gør en god ven, synes du?" },
-        { id: "c238", title: "Hvornår er det svært at være ærlig?" },
-        { id: "c239", title: "Hvad drømmer du om at lave, når du bliver ældre?" },
-        { id: "c240", title: "Hvad er du nervøs eller spændt på lige nu?" },
-        { id: "c241", title: "Hvad ville du gerne turde mere af?" },
-        { id: "c242", title: "Hvem ser du op til — og hvorfor?" },
-        { id: "c243", title: "Hvad vil du gerne have, vi voksne forstod bedre?" },
-        { id: "c244", title: "Hvordan er du en god ven mod dig selv?" },
-      ]
-    },
-    {
       id: "jul", title: "Jul & højtider", description: "Til bordet i december.",
       emoji: "🎄", accent: "#e6a9a9",
       cards: [
+        { id: "c409", title: "Hvad betyder julen for dig?" },
         { id: "c245", title: "Hvad er dit bedste juleminde?" },
-        { id: "c246", title: "Hvilken tradition betyder mest for dig?" },
+        { id: "c246", title: "Hvilken tradition betyder mest for dig — og hvorfor?" },
         { id: "c247", title: "Hvad ønsker du dig i år, som ikke kan pakkes ind?" },
         { id: "c248", title: "Hvem vil du gerne se mere til i det nye år?" },
         { id: "c249", title: "Hvad er den bedste gave, du nogensinde har fået?" },
@@ -867,6 +978,12 @@ const DATA = {
         { id: "c254", title: "Hvad er du taknemmelig for i år?" },
         { id: "c255", title: "Hvilken ny tradition skal vi starte?" },
         { id: "c256", title: "Hvad gør højtiderne særlige for dig?" },
+        { id: "c410", title: "Hvem tænker du særligt på i julen?" },
+        { id: "c411", title: "Hvad glæder du dig mest til i år?" },
+        { id: "c412", title: "Hvad vil du gerne gøre for andre i år?" },
+        { id: "c413", title: "Hvad ønsker du for det kommende år?" },
+        { id: "c414", title: "Hvem vil du gerne sige noget godt til i dag?" },
+        { id: "c415", title: "Hvad vil du gerne huske fra denne jul?" },
       ]
     },
     {
@@ -885,6 +1002,33 @@ const DATA = {
         { id: "c266", title: "Hvad vil du gerne sige tak for?" },
         { id: "c267", title: "Hvilken vane vil du tage med ind i det nye år?" },
         { id: "c268", title: "Hvis året var en overskrift, hvad ville den lyde?" },
+        { id: "c416", title: "Hvad var det sværeste, du kom igennem?" },
+        { id: "c417", title: "Hvad ville du ønske, du havde gjort mere af?" },
+        { id: "c418", title: "Hvad vil du gerne blive bedre til i det nye år?" },
+        { id: "c419", title: "Hvilken lille vane vil du gerne starte?" },
+        { id: "c420", title: "Hvad håber du, det næste år bringer for os?" },
+        { id: "c421", title: "Hvem vil du gerne blive tættere på?" },
+        { id: "c422", title: "Hvad vil du sige til dig selv om et år?" },
+        { id: "c423", title: "Hvad er du mest taknemmelig for, når du ser tilbage på året?" },
+      ]
+    },
+    {
+      id: "taknemmelighed", title: "Tak & eftertanke", description: "Til en stille stund, året rundt — det, du er glad for.",
+      emoji: "🙏", accent: "#f2ddc0",
+      cards: [
+        { id: "c424", title: "Hvem i dit liv er du glad for at have?" },
+        { id: "c425", title: "Hvad tager du tit for givet, som egentlig er en gave?" },
+        { id: "c426", title: "Hvornår følte du dig sidst virkelig glad?" },
+        { id: "c427", title: "Hvad er du stolt af, som du sjældent siger højt?" },
+        { id: "c428", title: "Hvem burde du takke, som du ikke har fået sagt det til?" },
+        { id: "c429", title: "Hvilket lille øjeblik gjorde en forskel for dig i dag?" },
+        { id: "c430", title: "Hvad har du lært, som du er glad for at vide?" },
+        { id: "c431", title: "Hvad ved du, du kan regne med?" },
+        { id: "c432", title: "Hvornår har nogen overrasket dig med venlighed?" },
+        { id: "c433", title: "Hvad vil du gerne give videre til andre?" },
+        { id: "c434", title: "Hvad gør dit liv rigt, selv på en helt almindelig dag?" },
+        { id: "c435", title: "Hvad er du glad for at have sagt ja til?" },
+        { id: "c436", title: "Hvad vil du gerne minde dig selv om oftere?" },
       ]
     },
     {
@@ -903,6 +1047,27 @@ const DATA = {
         { id: "c278", title: "Hvad ville du ønske, folk huskede dig for?" },
         { id: "c279", title: "Er lykke et mål eller en bivirkning?" },
         { id: "c280", title: "Hvad er det vigtigste, du har lært om at være menneske?" },
+      ]
+    },
+    {
+      id: "naar-det-er-svaert", title: "Når noget er svært", description: "Når livet rammer en, du holder af — og du gerne vil sidde ved siden af.",
+      emoji: "🤝", accent: "#bcd8d4",
+      cards: [
+        { id: "c437", title: "Hvordan har du det med det, der sker lige nu?" },
+        { id: "c438", title: "Hvad fylder mest for dig i det her?" },
+        { id: "c439", title: "Hvad har du brug for fra mig — trøst, hjælp, eller bare at jeg lytter?" },
+        { id: "c440", title: "Hvad er du mest bange for i det her?" },
+        { id: "c441", title: "Er der noget, du ikke har turdet sige højt?" },
+        { id: "c442", title: "Hvornår føltes det sidst en lille smule bedre?" },
+        { id: "c443", title: "Hvad plejer at hjælpe dig, når det er svært?" },
+        { id: "c444", title: "Hvem andre kan vi række ud til sammen?" },
+        { id: "c445", title: "Hvad ville du ønske, folk forstod bedre?" },
+        { id: "c446", title: "Hvad har du brug for, at jeg gør anderledes?" },
+        { id: "c447", title: "Hvad kan vi gøre, så du føler dig mindre alene?" },
+        { id: "c448", title: "Hvad er det næste lille skridt, vi kan tage sammen?" },
+        { id: "c449", title: "Hvad giver dig alligevel lidt håb?" },
+        { id: "c450", title: "Hvornår føler du dig tryg nok til at slappe af?" },
+        { id: "c451", title: "Hvad vil du gerne have, jeg husker, når det bliver hårdt igen?" },
       ]
     },
     {
