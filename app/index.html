@@ -41,7 +41,8 @@
   /* ============================================================
      SAMTALEKORT — "Varm & legende" tema (PWA)
      Rediger DATA-objektet nederst i <script> for at ændre indhold.
-     Ny version udgives via CACHE-tallet i sw.js — se den fil.
+     Ny version udgives ved bare at pushe til main — appen henter
+     den selv i baggrunden. Se "OPDATERING" nederst i filen.
      ============================================================ */
 
   :root {
@@ -459,10 +460,14 @@
 <script>
 /* ================================================================
    VERSION
-   Vises i appen. Selve opdaterings-mekanismen styres af sw.js
-   (hæv CACHE-tallet dér for at udgive en ny version).
+   APP_VERSION er den "menneskelige" version, du selv hæver, når
+   der er sket noget værd at nævne. BUILD stemples automatisk med
+   commit-nummeret, når appen lægges op — det er den, opdaterings-
+   mekanismen bruger. Du behøver ikke røre nogen af dem for at
+   udgive nye kort: bare push til main.
    ================================================================ */
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.1.0";
+const BUILD = "__BUILD__";              // stemples automatisk i CI
 
 /* ================================================================
    DATAMODEL — helt fleksibel (vilkårligt antal sæt og kort).
@@ -951,13 +956,37 @@ function allFavCards() { const out = []; DATA.sets.forEach((s) => s.cards.forEac
 
 /* Indstillinger (kun ubrugte, tema, intro, sidste position) */
 const OPT_KEY = "samtalekort:opt:v1";
-let opt = { onlyUnused: false, seenIntro: false, theme: "auto", last: null };
+const OPT_SCHEMA = 2;
+let opt = { onlyUnused: false, seenIntro: false, theme: "auto", last: null, schema: OPT_SCHEMA, build: null, cardCount: 0 };
 let onlyUnused = false;
 function loadOpt() {
   try { const o = JSON.parse(localStorage.getItem(OPT_KEY) || "{}"); if (o) opt = Object.assign(opt, o); } catch (e) {}
+  migrateOpt();
   onlyUnused = !!opt.onlyUnused;
 }
 function saveOpt() { opt.onlyUnused = onlyUnused; try { localStorage.setItem(OPT_KEY, JSON.stringify(opt)); } catch (e) {} }
+
+/* Flytter gamle gemte indstillinger med over i nye versioner.
+   Vi sletter aldrig noget, vi ikke forstår — ukendte felter får
+   lov at blive liggende, så en ældre app ikke taber dem. */
+function migrateOpt() {
+  // v1 gemte "fortsæt her"-positionen som et sæt-NUMMER. Når der
+  // kommer nye temaer til, flytter numrene sig — så nu gemmer vi
+  // sættets id i stedet. Vi finder det rigtige sæt via KORTET, ikke
+  // via nummeret: nummeret peger på den gamle rækkefølge, mens
+  // kort-id'et er det samme uanset hvordan temaerne er sorteret.
+  if (opt.last && opt.last.setId == null) {
+    const owner = DATA.sets.find((s) => s.cards.some((c) => c.id === opt.last.cardId));
+    const byIndex = typeof opt.last.setIndex === "number" ? DATA.sets[opt.last.setIndex] : null;
+    const s = owner || byIndex;
+    opt.last = s ? { setId: s.id, cardId: opt.last.cardId } : null;
+  }
+  // Peger positionen på et tema, der ikke findes længere, glemmer vi den.
+  if (opt.last && setIndexById(opt.last.setId) < 0) opt.last = null;
+  opt.schema = OPT_SCHEMA;
+}
+const setIndexById = (id) => DATA.sets.findIndex((s) => s.id === id);
+const totalCards = () => DATA.sets.reduce((n, s) => n + s.cards.length, 0);
 
 /* ================================================================
    APP-LOGIK
@@ -1061,6 +1090,9 @@ function goHome() {
   $("backBtn").style.display = "none";
   $("menuBtn").style.display = "none";
   renderHome();
+  // Forsiden er et roligt øjeblik — hvis en ny version står klar,
+  // skifter vi til den her (usynligt for brugeren).
+  applyUpdateIfIdle();
 }
 
 // Bygger et kort-element for et givet index i dækket (uden ind-animation)
@@ -1345,7 +1377,7 @@ function closeConfirm() { $("confirmBackdrop").classList.remove("show"); $("conf
 function openAbout() {
   const sets = DATA.sets.length;
   const cards = DATA.sets.reduce((n, s) => n + s.cards.length, 0);
-  $("aboutText").textContent = "En Meanwhile-app til gode samtaler.\n" + sets + " sæt · " + cards + " kort · version " + APP_VERSION;
+  $("aboutText").textContent = "En Meanwhile-app til gode samtaler.\n" + sets + " sæt · " + cards + " kort · version " + APP_VERSION + buildSuffix();
   $("aboutBackdrop").classList.add("show"); $("about").classList.add("show");
   focusModal($("about"));
 }
@@ -1398,19 +1430,22 @@ function focusModal(m) { const f = m.querySelector("button"); if (f) setTimeout(
 /* ---- Fortsæt hvor du slap ---- */
 function saveLast() {
   if (state.source && state.source.type === "set" && state.deck[state.cardIndex]) {
-    opt.last = { setIndex: state.setIndex, cardId: state.deck[state.cardIndex].id };
+    opt.last = { setId: DATA.sets[state.setIndex].id, cardId: state.deck[state.cardIndex].id };
     saveOpt();
   }
 }
+function lastSetIndex() { return opt.last ? setIndexById(opt.last.setId) : -1; }
 function updateResumeBtn() {
   const b = $("resumeBtn");
-  if (opt.last && DATA.sets[opt.last.setIndex]) {
-    b.textContent = "▶ Fortsæt: " + DATA.sets[opt.last.setIndex].title;
+  const i = lastSetIndex();
+  if (i >= 0) {
+    b.textContent = "▶ Fortsæt: " + DATA.sets[i].title;
     b.style.display = "inline-flex";
   } else { b.style.display = "none"; }
 }
 function resumeLast() {
-  if (opt.last && DATA.sets[opt.last.setIndex]) openSet(opt.last.setIndex, opt.last.cardId);
+  const i = lastSetIndex();
+  if (i >= 0) openSet(i, opt.last.cardId);
 }
 
 /* ---- Event listeners ---- */
@@ -1702,42 +1737,134 @@ $("installBtn").addEventListener("click", async () => {
 });
 window.addEventListener("appinstalled", () => { $("installBtn").style.display = "none"; });
 
-/* ---- Service worker + versionsopdatering ---- */
+/* ================================================================
+   OPDATERING — stille og af sig selv
+   ----------------------------------------------------------------
+   Sådan virker det:
+   1. Service workeren henter nye filer i baggrunden, hver gang
+      appen åbnes, hentes frem igen, eller hvert 30. minut.
+   2. Når den nye version er hentet, tager den over med det samme
+      — men siden genindlæser først, når I er på FORSIDEN og der
+      ikke er en dialog åben. Ingen bliver afbrudt midt i et kort,
+      og der kommer ikke noget "vil du opdatere?"-spørgsmål.
+   3. Brugte kort, favoritter og indstillinger ligger i
+      localStorage og overlever alle opdateringer. Er der kommet
+      nye kort til, siger appen kort til efter opdateringen.
+   ================================================================ */
+const UPDATE_EVERY = 30 * 60 * 1000;   // baggrundstjek, mens appen er åben
+const CHECK_THROTTLE = 60 * 1000;      // tjek højst én gang i minuttet
+let swReg = null;
+let updateReady = false;               // ny version er aktiv og venter på et roligt øjeblik
+let reloadingForUpdate = false;
+let lastCheck = 0;
+let manualCheckTimer = null;
+// Havde siden allerede en service worker, da den blev åbnet? Hvis ikke, er
+// den allerførste installation ikke en "opdatering", og vi skal ikke
+// genindlæse oven i hovedet på en ny bruger.
+const HAD_CONTROLLER = ("serviceWorker" in navigator) && !!navigator.serviceWorker.controller;
+
+const buildSuffix = () => (BUILD.indexOf("__") === 0 ? "" : " (" + BUILD + ")");
+
+// Et "roligt øjeblik" = forsiden, ingen dialog, ingen menu.
+function appIsIdle() {
+  if (state.source) return false;
+  if (document.querySelector(".modal.show")) return false;
+  if ($("menu").classList.contains("show")) return false;
+  return true;
+}
+
+function applyUpdateIfIdle(force) {
+  if (!updateReady || reloadingForUpdate) return false;
+  if (!force && !appIsIdle()) { waitForQuietMoment(); return false; }
+  reloadingForUpdate = true;
+  try { saveLast(); saveOpt(); saveUsed(); saveFav(); } catch (e) {}
+  location.reload();
+  return true;
+}
+
+// Er der ikke ro lige nu (midt i et tema, en dialog åben), så kigger vi
+// stille forbi med jævne mellemrum, til der er. Timeren kører kun, mens
+// en opdatering venter.
+let quietTimer = null;
+function waitForQuietMoment() {
+  if (quietTimer) return;
+  quietTimer = setInterval(() => {
+    if (!updateReady || reloadingForUpdate) { clearInterval(quietTimer); quietTimer = null; return; }
+    if (appIsIdle()) { clearInterval(quietTimer); quietTimer = null; applyUpdateIfIdle(); }
+  }, 3000);
+}
+
+function onUpdateActivated() {
+  if (!HAD_CONTROLLER) return;          // første installation — ikke en opdatering
+  updateReady = true;
+  const wasManual = !!manualCheckTimer;
+  if (wasManual) { clearTimeout(manualCheckTimer); manualCheckTimer = null; hideBanner(); }
+  applyUpdateIfIdle(wasManual);         // bad brugeren selv om det, skifter vi med det samme
+}
+
+function checkForUpdate(manual) {
+  if (!swReg) {
+    if (manual) { showBanner("Kunne ikke søge lige nu — prøv igen om et øjeblik.", "OK", hideBanner); setTimeout(hideBanner, 4000); }
+    return;
+  }
+  const now = Date.now();
+  if (!manual && now - lastCheck < CHECK_THROTTLE) return;
+  lastCheck = now;
+  // Står en færdig version allerede og venter, så brug den
+  if (updateReady && manual) { applyUpdateIfIdle(true); return; }
+  swReg.update().catch(() => {});
+  if (!manual) return;
+  showBanner("Søger efter opdatering …", "OK", hideBanner);
+  manualCheckTimer = setTimeout(() => {
+    manualCheckTimer = null;
+    if (updateReady) { applyUpdateIfIdle(true); return; }
+    showBanner("Du har den nyeste version (" + APP_VERSION + buildSuffix() + ").", "OK", hideBanner);
+    setTimeout(hideBanner, 4000);
+  }, 5000);
+}
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").then((reg) => {
-      reg.addEventListener("updatefound", () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener("statechange", () => {
-          if (nw.state === "installed" && navigator.serviceWorker.controller) {
-            showBanner("Ny version klar.", "Genindlæs", () => {
-              reg.waiting && reg.waiting.postMessage({ type: "SKIP_WAITING" });
-            });
-          }
-        });
-      });
-
-      // Manuel "Søg efter opdatering"
-      $("checkUpdateBtn").addEventListener("click", () => {
-        reg.update().then(() => {
-          if (!reg.waiting && !reg.installing) {
-            showBanner("Du har allerede den nyeste version (" + APP_VERSION + ").", "OK", hideBanner);
-          }
-        });
-      });
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+      swReg = reg;
+      lastCheck = Date.now();
+      reg.update().catch(() => {});
+      setInterval(() => checkForUpdate(false), UPDATE_EVERY);
     }).catch(() => {});
 
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (refreshing) return;
-      refreshing = true;
-      location.reload();
+    // Den nye version siger til, når den er aktiv
+    navigator.serviceWorker.addEventListener("message", (e) => {
+      if (e.data && e.data.type === "UPDATED") onUpdateActivated();
     });
+    navigator.serviceWorker.addEventListener("controllerchange", onUpdateActivated);
+  });
+
+  $("checkUpdateBtn").addEventListener("click", () => checkForUpdate(true));
+
+  // Appen hentes frem igen: tjek for nyt, og skift hvis der venter noget
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    if (applyUpdateIfIdle()) return;
+    checkForUpdate(false);
   });
 } else {
   $("checkUpdateBtn").addEventListener("click", () =>
     showBanner("Opdateringer virker kun, når appen ligger på en webadresse (ikke som lokal fil).", "OK", hideBanner));
+}
+
+/* Efter en opdatering: sig kort til, hvis der er kommet nye kort.
+   Kører også, hvis appen bare blev startet forfra på en ny version. */
+function announceUpdate() {
+  const known = opt.build;
+  const knownCards = opt.cardCount || 0;
+  const now = totalCards();
+  opt.build = BUILD;
+  opt.cardCount = now;
+  saveOpt();
+  if (!known || known === BUILD) return;          // første start eller samme version
+  const added = now - knownCards;
+  showBanner(added > 0 ? "Opdateret ✓ " + added + " nye kort er kommet til." : "Appen er opdateret ✓", "OK", hideBanner);
+  setTimeout(hideBanner, 6000);
 }
 
 /* ---- Start ---- */
@@ -1752,6 +1879,7 @@ try {
   rm.addEventListener("change", (e) => { reduceMotion = e.matches; });
 } catch (e) {}
 renderHome();
+announceUpdate();
 
 /* ---- Splash: vis kort, ton blødt væk efter en fast varighed ---- */
 (function initSplash() {

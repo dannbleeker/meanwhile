@@ -2,7 +2,7 @@
 
 En lille, installerbar web-app (PWA) med samtalekort til par. Man vælger et
 tema og bladrer gennem kortene ét ad gangen. Appen husker, hvilke kort der er
-brugt, virker offline og kan opdateres til nye versioner.
+brugt, virker offline og opdaterer sig selv, uden at nogen mister noget.
 
 Live: **https://meanwhile.retailforever.com/**
 
@@ -23,7 +23,7 @@ python3 -m http.server 8000
 ```
 app/
 ├─ index.html            # hele appen (UI + kortdata i DATA-objektet nederst)
-├─ sw.js                 # service worker (offline + versionsopdatering)
+├─ sw.js                 # service worker (offline + stille opdatering)
 ├─ manifest.webmanifest  # app-navn, farver og ikoner
 ├─ icons/                # icon.svg, favicon-32, icon-192/512,
 │                        # icon-maskable-512, apple-touch-icon-180
@@ -44,22 +44,54 @@ appen (pr. tema eller for alle).
 
 ## Udgiv en ny version
 
-1. Ret indhold/kode i `app/index.html` (og evt. `APP_VERSION`).
-2. Hæv cache-tallet i `app/sw.js`, fx `samtalekort-v1` → `samtalekort-v2`.
-3. Commit/push til `main`. Deploy kører automatisk, og installerede apps
-   viser "Ny version klar — genindlæs".
+**Ret og push — resten sker af sig selv.**
 
-Trin 2 er ikke valgfrit. Browseren opdager kun en ny version, hvis selve
-`sw.js` er ændret — og service workeren serverer cache-first. Pusher du
-en ændring i `index.html` uden at røre `sw.js`, bliver den udgivet, men
-installerede apps bliver ved med at vise den gamle udgave.
+1. Ret indhold/kode i `app/index.html` (nye kort, nye temaer, rettelser).
+2. Commit og push til `main`.
+
+GitHub Actions stempler commit-nummeret ind i `app/sw.js` og `app/index.html`
+som build-id og lægger appen op. Der er **ingen cache-tal at hæve** — et nyt
+commit er i sig selv den nye version. Hæv kun `APP_VERSION` i `index.html`,
+når du synes, ændringen er værd at nævne; det er kun en etiket.
+
+## Sådan opdaterer installerede apps sig selv
+
+Opdateringen sker stille, uden at spørge:
+
+1. Appen tjekker efter nye filer, hver gang den åbnes, hver gang den hentes
+   frem igen — og hvert 30. minut, mens den er åben.
+2. Den nye version hentes i baggrunden og bliver aktiv med det samme.
+3. Selve skiftet sker først, når I er på **forsiden** uden åben dialog. Ingen
+   bliver afbrudt midt i et kort, og der kommer ikke noget "vil du opdatere?".
+   Er I midt i et tema, kommer den nye version, næste gang I lukker tilbage til
+   forsiden eller åbner appen igen.
+4. Er der kommet nye kort, siger appen kort til bagefter ("Opdateret ✓ 12 nye
+   kort er kommet til").
+
+Linket "Søg efter opdatering" nederst på forsiden gør det samme med det samme.
+
+### Hvad sker der med brugtes kort og indstillinger?
+
+Ingenting — de overlever. Brugte kort, favoritter, tema og "fortsæt her"
+ligger i `localStorage` og bliver aldrig rørt af en opdatering; kun appens egne
+filcacher ryddes. To ting holder det i live over tid:
+
+- **Behold `id`'erne stabile.** `used`/`favorit` huskes pr. kort-`id` og pr.
+  sæt-`id`. Ændrer du teksten på et kort, beholder det sin historik; giver du
+  det et nyt `id`, tæller det som et nyt kort (som det skal, hvis spørgsmålet
+  reelt er nyt).
+- **Tilføj frit.** Nye kort og nye temaer dukker bare op som ubrugte. Du må
+  gerne indsætte et nyt tema midt i rækken — "fortsæt her" gemmes på sæt-`id`,
+  ikke på pladsen i rækken (gamle installationer flyttes automatisk over ved
+  første start på den nye version).
 
 ## Deploy
 
 `app/` publiceres til GitHub Pages af
 [`.github/workflows/pages.yml`](.github/workflows/pages.yml) ved hvert push til
 `main` (og kan køres manuelt via *Actions → Run workflow*). Der er intet
-build-trin — mappen uploades som den er.
+build-trin — mappen uploades, som den er, bortset fra at build-id'et stemples
+ind undervejs.
 
 Opsætningen: *Settings → Pages → Source* er sat til **GitHub Actions**, og
 custom domain er `meanwhile.retailforever.com` med *Enforce HTTPS* slået til.
