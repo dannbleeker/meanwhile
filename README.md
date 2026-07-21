@@ -49,10 +49,21 @@ appen (pr. tema eller for alle).
 1. Ret indhold/kode i `app/index.html` (nye kort, nye temaer, rettelser).
 2. Commit og push til `main`.
 
-GitHub Actions stempler commit-nummeret ind i `app/sw.js` og `app/index.html`
-som build-id og lægger appen op. Der er **ingen cache-tal at hæve** — et nyt
-commit er i sig selv den nye version. Hæv kun `APP_VERSION` i `index.html`,
-når du synes, ændringen er værd at nævne; det er kun en etiket.
+GitHub Actions stempler et build-id ind i `app/sw.js` og `app/index.html` og
+lægger appen op. Der er **ingen cache-tal at hæve** — en ændring i `app/` er i
+sig selv den nye version. Hæv kun `APP_VERSION` i `index.html`, når du synes,
+ændringen er værd at nævne; det er kun en etiket.
+
+Build-id'et er **tree-hashen for `app/`** (`git rev-parse HEAD:app`), ikke
+commit-sha'en. Det er med vilje: retter du kun README eller workflowet, er
+id'et uændret, og ingen får en "ny version" ned og henter appen igen uden
+grund. Ændrer du derimod bare ét tegn i `app/`, er id'et nyt, og alle får den.
+
+Konsekvensen er, at **den deployede `app/sw.js` og `app/index.html` ikke er
+byte-identiske med kilden i repoet** — pladsholderen `__BUILD__` er erstattet.
+Sammenligner du en fil fra <https://meanwhile.retailforever.com/> med repoet,
+er den ene linje altså forskellig med vilje. Workflowet fejler, hvis
+pladsholderen mangler, så stemplingen ikke kan forsvinde ubemærket.
 
 ## Sådan opdaterer installerede apps sig selv
 

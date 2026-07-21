@@ -18,17 +18,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # Stempler commit-nummeret ind i appen. Det er DET, der får
-      # installerede apps til at opdage en ny version — derfor skal
-      # pladsholderen findes, ellers stopper vi hellere her.
+      # Stempler et build-id ind i appen. Det er DET, der får installerede
+      # apps til at opdage en ny version — derfor skal pladsholderen findes,
+      # ellers stopper vi hellere her.
+      #
+      # Id'et er tree-hashen for app/ — IKKE commit-sha'en. Så ændrer det sig
+      # kun, når app/ faktisk er ændret: et push, der bare retter README eller
+      # workflowet, sender ikke en "ny version" ud til alle og får dem til at
+      # hente appen igen uden grund.
       - name: Stempl build-id
         run: |
-          BUILD="${GITHUB_SHA::7}"
+          BUILD="$(git rev-parse HEAD:app | cut -c1-12)"
           for f in app/sw.js app/index.html; do
             grep -q '__BUILD__' "$f" || { echo "::error file=$f::__BUILD__ mangler — stille opdatering ville holde op med at virke"; exit 1; }
             sed -i "s/__BUILD__/$BUILD/g" "$f"
           done
-          echo "Build-id: $BUILD"
+          echo "Build-id (tree-hash for app/): $BUILD"
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

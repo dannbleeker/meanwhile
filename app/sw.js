@@ -4,14 +4,17 @@
    OPDATERINGER SKER HELT AF SIG SELV.
 
    Du skal IKKE røre denne fil for at udgive nye kort eller
-   rettelser. Build-id'et herunder bliver automatisk stemplet med
-   commit-nummeret, når GitHub Actions lægger appen op
-   (se .github/workflows/pages.yml).
+   rettelser. Build-id'et herunder bliver stemplet automatisk, når
+   GitHub Actions lægger appen op (se .github/workflows/pages.yml).
 
-     nyt commit  ->  nyt build-id  ->  ny cache
-                 ->  alle installerede apps henter den nye version
-                     stille i baggrunden og skifter til den, næste
-                     gang appen er på forsiden.
+     app/ ændret  ->  nyt build-id  ->  ny cache
+                  ->  alle installerede apps henter den nye version
+                      stille i baggrunden og skifter til den, næste
+                      gang appen er på forsiden.
+
+   Stemplet er tree-hashen for app/, ikke commit-nummeret. Retter du
+   kun README, er build-id'et det samme, og ingen får en unødig
+   "ny version" ned.
 
    Kører du lokalt, står pladsholderen uændret. Det virker fint,
    men så opdager appen kun en ændring, hvis du selv retter
