@@ -22,7 +22,7 @@ python3 -m http.server 8000
 
 ```
 app/
-├─ index.html            # hele appen (UI + kortdata i DATA-objektet nederst)
+├─ index.html            # hele appen (UI + kortdata i DATA-objektet)
 ├─ sw.js                 # service worker (offline + stille opdatering)
 ├─ manifest.webmanifest  # app-navn, farver og ikoner
 ├─ icons/                # icon.svg, favicon-32, icon-192/512,
@@ -32,7 +32,8 @@ app/
 
 ## Rediger kortene
 
-Kortene ligger i `DATA`-objektet nederst i `app/index.html`. Modellen er fri:
+Kortene ligger i `DATA`-objektet i `app/index.html` (søg efter `const DATA`).
+Modellen er fri:
 et vilkårligt antal `sets`, hvert med `title`, `description`, `emoji`/`image`,
 `accent` og et vilkårligt antal `cards` (`id`, `title`, valgfri `text`/`image`).
 Behold `id`'erne stabile over versioner — de bruges til at huske "brugt"-status.

@@ -50,12 +50,30 @@ self.addEventListener("install", (e) => {
   e.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE);
-      await Promise.all(ASSETS.map(async (url) => {
+
+      // Selve appen SKAL i hus, før den nye version må tage over. Lykkes det
+      // ikke (dårligt signal i toget, et halvt deploy), kaster vi — så bliver
+      // installationen ikke færdig, activate kører aldrig, og den GAMLE
+      // version bliver stående og virker. Uden det her kunne vi aktivere en
+      // version uden app-skal og bagefter slette den eneste, der duede.
+      let shell;
+      try {
+        shell = await fetch(new Request(HTML_KEY, { cache: "reload" }));
+        if (!shell || !shell.ok) throw new Error("app-skallen svarede " + (shell && shell.status));
+      } catch (err) {
+        await caches.delete(CACHE);   // efterlad ikke en tom halv cache
+        throw err;
+      }
+      await cache.put(HTML_KEY, shell);
+
+      // Resten er pynt (ikoner, manifest). Mangler én, virker appen endda.
+      await Promise.all(ASSETS.filter((u) => u !== HTML_KEY).map(async (url) => {
         try {
           const res = await fetch(new Request(url, { cache: "reload" }));
           if (res && res.ok) await cache.put(url, res);
         } catch (err) { /* en enkelt fil må gerne fejle — appen virker stadig */ }
       }));
+
       // Ingen ventetid: den nye version må gerne tage over med det samme.
       // Selve siden genindlæser først, når brugeren er på forsiden.
       await self.skipWaiting();
@@ -127,7 +145,15 @@ async function freshenInBackground(event, req, isHTML) {
     event.waitUntil(fromNetwork.catch(() => {}));
     return cached;
   }
-  return fromNetwork;
+  // Intet i vores egen cache. Virker nettet heller ikke, så led i ALLE cacher
+  // efter en app-skal, før vi lader browseren vise sin fejlside.
+  try {
+    return await fromNetwork;
+  } catch (err) {
+    const nødskal = isHTML ? await caches.match(HTML_KEY) : null;
+    if (nødskal) return nødskal;
+    throw err;
+  }
 }
 
 async function cacheFirst(req) {

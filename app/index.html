@@ -40,7 +40,7 @@
 <style>
   /* ============================================================
      SAMTALEKORT — "Varm & legende" tema (PWA)
-     Rediger DATA-objektet nederst i <script> for at ændre indhold.
+     Rediger DATA-objektet i <script> herunder for at ændre indhold.
      Ny version udgives ved bare at pushe til main — appen henter
      den selv i baggrunden. Se "OPDATERING" nederst i filen.
      ============================================================ */
@@ -94,7 +94,7 @@
   @media (prefers-reduced-motion: reduce) { .splash-logo, .splash-title { animation: none !important; } }
 
   .app {
-    position: relative; z-index: 1; flex: 1;
+    position: relative; z-index: 1; flex: 1; min-height: 0;
     display: flex; flex-direction: column;
     width: 100%; max-width: 640px; margin: 0 auto;
     padding: calc(20px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
@@ -102,7 +102,9 @@
 
   /* ---------- Topbar ---------- */
   .topbar { display: flex; align-items: center; gap: 12px; min-height: 44px; margin-bottom: 8px; }
-  .brand { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; }
+  /* min-width: 0, så titlen skrumper i stedet for at skubbe "‹ Sæt" ud over
+     kanten på meget smalle skærme (og med overflow-x: hidden ud af syne). */
+  .brand { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .brand span { font-size: 22px; }
   .pill-btn {
     border: none; background: rgba(255,255,255,0.72); backdrop-filter: blur(6px);
@@ -163,16 +165,24 @@
   /* ============================================================
      SKÆRM 2 — KORT
      ============================================================ */
-  .deck-screen { flex: 1; display: none; flex-direction: column; }
+  /* min-height: 0 hele vejen ned: en flex-boks nægter som udgangspunkt at
+     blive mindre end sit indhold, og så vokser kortet ud over skærmen og
+     tager prikkerne og ‹ › med sig ned under kanten. */
+  .deck-screen { flex: 1; min-height: 0; display: none; flex-direction: column; }
   .deck-screen.active { display: flex; }
   .home-screen.hidden { display: none; }
 
   .set-label { text-align: center; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; font-size: 12px; color: var(--ink-soft); margin: 4px 0 14px; }
 
-  .stage { flex: 1; display: grid; place-items: center; position: relative; perspective: 1200px; min-height: 340px; }
+  /* min-height: 0 er nødvendig: uden den kan kortet kræve 340 px, selv når
+     skærmen ikke har dem, og så skubbes prikkerne og ‹ › ned under kanten. */
+  .stage { flex: 1; min-height: 0; display: grid; place-items: center; position: relative; perspective: 1200px; }
 
   .card {
-    position: relative; width: 100%; max-width: 400px; aspect-ratio: 3 / 4;
+    /* Højden kom før udelukkende af bredden (3:4). På en lav skærm — eller
+       med mange prikker under kortet — voksede kortet ud over skærmen og tog
+       navigationen med sig. max-height holder det inden for sin egen plads. */
+    position: relative; width: 100%; max-width: 400px; aspect-ratio: 3 / 4; max-height: 100%;
     background: #fff; border-radius: var(--card-radius); box-shadow: var(--shadow);
     padding: 28px; display: flex; flex-direction: column; overflow: hidden;
     will-change: transform, opacity; transition: opacity .25s ease;
@@ -195,7 +205,12 @@
   .icon-btn:active { transform: scale(0.9); }
   .icon-btn.fav.active { color: #e5484d; background: rgba(229,72,77,0.14); }
   .empty-msg { position: relative; z-index: 1; white-space: pre-line; text-align: center; font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; line-height: 1.3; color: var(--ink-soft); padding: 0 8px; }
-  .card-title { position: relative; font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(23px, 6.2vw, 31px); line-height: 1.12; margin-bottom: 12px; }
+  /* Bliver kortet lavt, skal spørgsmålet kunne rulles i stedet for at skubbe
+     "Markér som brugt" ud gennem kortets bund (kortet har overflow: hidden). */
+  .card-title { position: relative; font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(23px, 6.2vw, 31px); line-height: 1.12; margin-bottom: 12px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+  /* Uden det her tegner browseren en rullebjælke ved hvert eneste kort, fordi
+     to tekstlinjer måler 52,13 px og rundes til 52 og 53 hver sin vej. */
+  .card-title::-webkit-scrollbar { display: none; }
   .card-text { position: relative; font-size: 17px; font-weight: 600; line-height: 1.5; color: var(--ink-soft); overflow-y: auto; flex: 1; }
   .card-used-btn {
     position: relative; z-index: 3; margin-top: 16px; align-self: flex-start;
@@ -210,10 +225,14 @@
   .card.enter-right { animation: inFromRight .38s cubic-bezier(.22,.9,.32,1.2) both; }
   .card.enter-left  { animation: inFromLeft  .38s cubic-bezier(.22,.9,.32,1.2) both; }
 
-  .dots { display: flex; gap: 8px; justify-content: center; margin: 20px 0 14px; flex-wrap: wrap; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(120,70,90,0.25); border: none; padding: 0; cursor: pointer; transition: transform .2s ease, background .2s ease; }
-  .dot.active { background: var(--ink); transform: scale(1.4); }
-  .dot.used { background: var(--good); }
+  .dots { display: flex; gap: 0; justify-content: center; margin: 12px 0 6px; flex-wrap: wrap; }
+  /* Prikken ser ud som før (9 px), men trykfeltet er 25 px. Uden polstringen
+     var målet 9x9 px med 8 px imellem — for lille at ramme med en tommelfinger. */
+  .dot { width: 9px; height: 9px; box-sizing: content-box; padding: 8px; background-clip: content-box; border-radius: 50%; background-color: rgba(120,70,90,0.25); border: none; cursor: pointer; transition: transform .2s ease, background-color .2s ease; }
+  /* background-color, ikke background: genvejen ville nulstille background-clip
+     og male hele det 25 px store trykfelt i stedet for selve prikken. */
+  .dot.active { background-color: var(--ink); transform: scale(1.4); }
+  .dot.used { background-color: var(--good); }
 
   .nav { display: flex; align-items: center; justify-content: center; gap: 18px; }
   .nav-btn { border: none; background: #fff; color: var(--ink); width: 58px; height: 58px; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: var(--shadow-soft); display: grid; place-items: center; transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease; }
@@ -295,8 +314,11 @@
   html.dark .set-card { background: rgba(255,255,255,0.06); }
   html.dark .icon-btn { background: rgba(255,255,255,0.08); color: var(--ink-soft); }
   html.dark .icon-btn.fav.active { color: #ff6b70; background: rgba(255,107,112,0.18); }
-  html.dark .dot { background: rgba(255,255,255,0.22); }
-  html.dark .dot.active { background: var(--ink); }
+  html.dark .dot { background-color: rgba(255,255,255,0.22); }
+  html.dark .dot.active { background-color: var(--ink); }
+  /* Uden denne linje vinder "html.dark .dot" over ".dot.used", og så har de
+     grønne "brugt"-prikker aldrig kunnet ses i mørk tilstand. */
+  html.dark .dot.used { background-color: var(--good); }
   html.dark .sheet { background: #241d29; }
   html.dark .sheet-handle { background: rgba(255,255,255,0.22); }
   html.dark .sheet .ghost-btn { background: rgba(255,255,255,0.07); color: var(--ink); }
@@ -453,7 +475,7 @@
   <!-- Update / install banner -->
   <div class="banner" id="banner">
     <p id="bannerText"></p>
-    <button id="bannerAction"></button>
+    <button id="bannerAction">OK</button>
     <button class="x" id="bannerClose" aria-label="Luk">✕</button>
   </div>
 
@@ -462,9 +484,9 @@
    VERSION
    APP_VERSION er den "menneskelige" version, du selv hæver, når
    der er sket noget værd at nævne. BUILD stemples automatisk med
-   commit-nummeret, når appen lægges op — det er den, opdaterings-
-   mekanismen bruger. Du behøver ikke røre nogen af dem for at
-   udgive nye kort: bare push til main.
+   tree-hashen for app/ (ikke commit-sha'en), når appen lægges op —
+   det er den, opdateringsmekanismen bruger. Du behøver ikke røre
+   nogen af dem for at udgive nye kort: bare push til main.
    ================================================================ */
 const APP_VERSION = "1.1.0";
 const BUILD = "__BUILD__";              // stemples automatisk i CI
@@ -474,7 +496,9 @@ const BUILD = "__BUILD__";              // stemples automatisk i CI
    Hvert 'id' bruges til at huske "brugt"-status. Behold id'er
    stabile over versioner, så hukommelsen følger med.
    Felter: set{ id, title, description?, emoji?, image?, accent?, cards[] }
-           card{ id, title?, text, image?, accent? }
+           card{ id, title, text?, image?, accent? }
+   'title' er selve spørgsmålet — det er det, alle 316 kort bruger.
+   'text' er en valgfri uddybning under spørgsmålet.
    Billeder er valgfri overalt.
    ================================================================ */
 const DATA = {
@@ -1047,6 +1071,9 @@ function buildDeck(keepId) {
 }
 
 function enterDeck(title) {
+  // Banneret sidder i bunden — præcis oven på ‹ og › inde i et tema.
+  // Beskeder hører hjemme på forsiden, så luk det, når vi går ind i bunken.
+  hideBanner();
   $("homeScreen").classList.add("hidden");
   $("deckScreen").classList.add("active");
   $("backBtn").style.display = "inline-flex";
@@ -1165,23 +1192,29 @@ function onUsedClick(card, el, btn) {
   updateFavBtn();
   if (!(nowUsed && el === $("stage").querySelector(".card"))) return;
 
+  // Alt herunder sker på en forsinkelse. Når den udløber, kan brugeren for
+  // længst have trykket "‹ Sæt" eller skiftet tema — så husk hvilket dæk vi
+  // var i, og lad være med at røre skærmen, hvis vi ikke er der længere.
+  const src = state.source, si = state.setIndex;
+  const stadigHer = () => state.source === src;
+
   // Fejring når hele sættet er gennemført
-  if (state.source.type === "set" && DATA.sets[state.setIndex].cards.every((c) => isUsed(c.id))) {
-    setTimeout(() => celebrate(state.setIndex), 260);
+  if (src.type === "set" && DATA.sets[si].cards.every((c) => isUsed(c.id))) {
+    setTimeout(() => { if (stadigHer()) celebrate(si); }, 260);
     return;
   }
 
-  if (onlyUnused && state.source.type === "set") {
+  if (onlyUnused && src.type === "set") {
     // brugt kort forlader bunken
     const nb = state.deck[state.cardIndex + 1];
     if (nb) {
       animateToIndex(state.cardIndex + 1);
-      setTimeout(() => { buildDeck(nb.id); renderDeck(false, "right"); }, 520);
+      setTimeout(() => { if (stadigHer()) { buildDeck(nb.id); renderDeck(false, "right"); } }, 520);
     } else {
-      setTimeout(() => { buildDeck(); renderDeck(false, "left"); }, 240);
+      setTimeout(() => { if (stadigHer()) { buildDeck(); renderDeck(false, "left"); } }, 240);
     }
   } else if (state.cardIndex < state.deck.length - 1) {
-    setTimeout(() => animateToIndex(state.cardIndex + 1), 200);
+    setTimeout(() => { if (stadigHer()) animateToIndex(state.cardIndex + 1); }, 200);
   }
 }
 
@@ -1212,6 +1245,11 @@ function renderDeck(animate, dir) {
 }
 
 function renderCard(direction, animate) {
+  // Dækket kan være bygget om, siden noget planlagde denne tegning (fx når et
+  // brugt kort forlader bunken). Hold indekset inden for det dæk, vi HAR nu —
+  // ellers slår vi op i et kort, der ikke findes, og hele skærmen dør.
+  if (!state.deck.length) { renderEmpty(); return; }
+  state.cardIndex = Math.max(0, Math.min(state.cardIndex, state.deck.length - 1));
   const total = state.deck.length;
   const el = makeCardEl(state.cardIndex);
   if (animate !== false) el.classList.add(direction === "left" ? "enter-left" : "enter-right");
@@ -1305,9 +1343,14 @@ function animateToIndex(targetIndex) {
   cur.style.opacity = "0.3";
   ghost.style.transform = "translateX(0px)";
   setTimeout(() => {
-    state.cardIndex = targetIndex;
-    renderCard(goingNext ? "right" : "left", false); // sæt det nye kort statisk på plads
-    busy = false;
+    // busy skal ALTID slippes igen. Gør den ikke det, står ‹ ›, prikkerne,
+    // 🎲, piletasterne og swipe af — også i alle andre temaer bagefter.
+    try {
+      state.cardIndex = targetIndex;
+      renderCard(goingNext ? "right" : "left", false); // sæt det nye kort statisk på plads
+    } finally {
+      busy = false;
+    }
   }, 300);
 }
 function goNext() { animateToIndex(state.cardIndex + 1); }
@@ -1359,39 +1402,50 @@ function cycleTheme() {
 let reduceMotion = false;
 function haptic() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {} }
 
+/* ---- Dialoger: vis/skjul ét sted --------------------------------
+   En lukket dialog skal være HELT væk — ikke bare usynlig. Uden
+   'inert' bliver knapperne i den liggende i tabulator-rækkefølgen
+   og i skærmlæserens træ, og så kan man komme til at trykke på
+   "Nulstil sættet", man ikke kan se. (visibility duer ikke: den
+   hænger fast på "visible" på grund af overgangen.) */
+function visOverlay(el, vis) {
+  el.classList.toggle("show", vis);
+  el.inert = !vis;
+}
+
 /* ---- Intro-vejledning ---- */
-function showIntro() { $("introBackdrop").classList.add("show"); $("intro").classList.add("show"); focusModal($("intro")); }
-function closeIntro() { $("introBackdrop").classList.remove("show"); $("intro").classList.remove("show"); opt.seenIntro = true; saveOpt(); }
+function showIntro() { visOverlay($("introBackdrop"), true); visOverlay($("intro"), true); focusModal($("intro")); }
+function closeIntro() { visOverlay($("introBackdrop"), false); visOverlay($("intro"), false); opt.seenIntro = true; saveOpt(); }
 
 /* ---- Bekræft-dialog ---- */
 let confirmFn = null;
 function askConfirm(text, onOk) {
   $("confirmText").textContent = text;
   confirmFn = onOk;
-  $("confirmBackdrop").classList.add("show"); $("confirm").classList.add("show");
+  visOverlay($("confirmBackdrop"), true); visOverlay($("confirm"), true);
   focusModal($("confirm"));
 }
-function closeConfirm() { $("confirmBackdrop").classList.remove("show"); $("confirm").classList.remove("show"); confirmFn = null; }
+function closeConfirm() { visOverlay($("confirmBackdrop"), false); visOverlay($("confirm"), false); confirmFn = null; }
 
 /* ---- Om-skærm ---- */
 function openAbout() {
   const sets = DATA.sets.length;
   const cards = DATA.sets.reduce((n, s) => n + s.cards.length, 0);
   $("aboutText").textContent = "En Meanwhile-app til gode samtaler.\n" + sets + " sæt · " + cards + " kort · version " + APP_VERSION + buildSuffix();
-  $("aboutBackdrop").classList.add("show"); $("about").classList.add("show");
+  visOverlay($("aboutBackdrop"), true); visOverlay($("about"), true);
   focusModal($("about"));
 }
-function closeAbout() { $("aboutBackdrop").classList.remove("show"); $("about").classList.remove("show"); }
+function closeAbout() { visOverlay($("aboutBackdrop"), false); visOverlay($("about"), false); }
 
 /* ---- Fejring når et sæt er gennemført ---- */
 function celebrate(setIndex) {
   $("celebrateText").textContent = "I har været igennem alle kort i “" + DATA.sets[setIndex].title + "”.";
-  $("celebrateBackdrop").classList.add("show"); $("celebrate").classList.add("show");
+  visOverlay($("celebrateBackdrop"), true); visOverlay($("celebrate"), true);
   focusModal($("celebrate"));
   haptic();
   if (!reduceMotion) fireConfetti();
 }
-function closeCelebrate() { $("celebrateBackdrop").classList.remove("show"); $("celebrate").classList.remove("show"); }
+function closeCelebrate() { visOverlay($("celebrateBackdrop"), false); visOverlay($("celebrate"), false); }
 
 function fireConfetti() {
   const cv = $("confetti");
@@ -1475,8 +1529,8 @@ $("celebrateReset").addEventListener("click", () => { closeCelebrate(); resetSet
 $("celebrateNext").addEventListener("click", () => { const t = (state.setIndex + 1) % DATA.sets.length; closeCelebrate(); goToSet(t); });
 
 /* Menu (bund-ark bag ⋯) */
-function openMenu() { $("menuBackdrop").classList.add("show"); $("menu").classList.add("show"); }
-function closeMenu() { $("menuBackdrop").classList.remove("show"); $("menu").classList.remove("show"); }
+function openMenu() { visOverlay($("menuBackdrop"), true); visOverlay($("menu"), true); }
+function closeMenu() { visOverlay($("menuBackdrop"), false); visOverlay($("menu"), false); }
 $("menuBtn").addEventListener("click", openMenu);
 $("menuBackdrop").addEventListener("click", closeMenu);
 // Luk menuen når en handling er valgt (dog ikke ved "kun ubrugte"-kontakten)
@@ -1716,9 +1770,14 @@ function showBanner(text, actionLabel, onAction) {
   const a = $("bannerAction");
   a.textContent = actionLabel;
   a.onclick = onAction;
-  $("banner").classList.add("show");
+  visOverlay($("banner"), true);
 }
-function hideBanner() { $("banner").classList.remove("show"); }
+function hideBanner() {
+  visOverlay($("banner"), false);
+  // Lukker man banneret midt i en manuel søgning, skal svaret heller ikke
+  // komme brasende ind fem sekunder senere.
+  clearManualCheck();
+}
 $("bannerClose").addEventListener("click", hideBanner);
 
 /* ---- Installér som PWA (Android/desktop Chrome) ---- */
@@ -1758,6 +1817,7 @@ let updateReady = false;               // ny version er aktiv og venter på et r
 let reloadingForUpdate = false;
 let lastCheck = 0;
 let manualCheckTimer = null;
+let manualPending = false;             // en manuel søgning venter på svar
 // Havde siden allerede en service worker, da den blev åbnet? Hvis ikke, er
 // den allerførste installation ikke en "opdatering", og vi skal ikke
 // genindlæse oven i hovedet på en ny bruger.
@@ -1777,7 +1837,10 @@ function applyUpdateIfIdle(force) {
   if (!updateReady || reloadingForUpdate) return false;
   if (!force && !appIsIdle()) { waitForQuietMoment(); return false; }
   reloadingForUpdate = true;
-  try { saveLast(); saveOpt(); saveUsed(); saveFav(); } catch (e) {}
+  // Ikke noget at gemme her: brugte kort, favoritter, indstillinger og
+  // "fortsæt her" skrives i samme øjeblik, de ændrer sig. Skrev vi dem igen,
+  // ville vi sende et øjebliksbillede fra opstarten ned over det, en anden
+  // åben fane måtte have gemt i mellemtiden.
   location.reload();
   return true;
 }
@@ -1794,12 +1857,28 @@ function waitForQuietMoment() {
   }, 3000);
 }
 
-function onUpdateActivated() {
+// Ryd op efter en manuel søgning, så et svar aldrig kommer bagefter og
+// heller ikke kalder et lukket banner tilbage.
+function clearManualCheck() {
+  if (manualCheckTimer) { clearTimeout(manualCheckTimer); manualCheckTimer = null; }
+  manualPending = false;
+}
+
+function onUpdateActivated(build) {
   if (!HAD_CONTROLLER) return;          // første installation — ikke en opdatering
+  // Den nye service worker fortæller, hvilket build den er. Er det det samme,
+  // som siden allerede kører, er der intet nyt at skifte til — og så skal vi
+  // slet ikke genindlæse.
+  if (build && build === BUILD) return;
   updateReady = true;
-  const wasManual = !!manualCheckTimer;
-  if (wasManual) { clearTimeout(manualCheckTimer); manualCheckTimer = null; hideBanner(); }
+  const wasManual = manualPending;
+  if (wasManual) { clearManualCheck(); hideBanner(); }
   applyUpdateIfIdle(wasManual);         // bad brugeren selv om det, skifter vi med det samme
+}
+
+function svarNyeste() {
+  showBanner("Du har den nyeste version (" + APP_VERSION + buildSuffix() + ").", "OK", hideBanner);
+  setTimeout(hideBanner, 4000);
 }
 
 function checkForUpdate(manual) {
@@ -1812,15 +1891,35 @@ function checkForUpdate(manual) {
   lastCheck = now;
   // Står en færdig version allerede og venter, så brug den
   if (updateReady && manual) { applyUpdateIfIdle(true); return; }
-  swReg.update().catch(() => {});
-  if (!manual) return;
+  if (!manual) { swReg.update().catch(() => {}); return; }
+
+  // Manuel søgning: svar på hvad der FAKTISK skete, ikke på et stopur.
+  clearManualCheck();
+  manualPending = true;
   showBanner("Søger efter opdatering …", "OK", hideBanner);
-  manualCheckTimer = setTimeout(() => {
-    manualCheckTimer = null;
+  swReg.update().then(() => {
+    if (!manualPending) return;                     // brugeren lukkede banneret
     if (updateReady) { applyUpdateIfIdle(true); return; }
-    showBanner("Du har den nyeste version (" + APP_VERSION + buildSuffix() + ").", "OK", hideBanner);
-    setTimeout(hideBanner, 4000);
-  }, 5000);
+    if (swReg.installing || swReg.waiting) {
+      // Noget er på vej ned. onUpdateActivated svarer, når den er klar —
+      // og hænger den i en dårlig forbindelse, giver vi op efter et stykke tid.
+      manualCheckTimer = setTimeout(() => {
+        manualCheckTimer = null;
+        if (!manualPending) return;
+        manualPending = false;
+        showBanner("Opdateringen hentes stadig — den kommer af sig selv.", "OK", hideBanner);
+        setTimeout(hideBanner, 5000);
+      }, 20000);
+      return;
+    }
+    manualPending = false;
+    svarNyeste();
+  }).catch(() => {
+    if (!manualPending) return;
+    manualPending = false;
+    showBanner("Kunne ikke søge efter opdatering — er du online?", "OK", hideBanner);
+    setTimeout(hideBanner, 5000);
+  });
 }
 
 if ("serviceWorker" in navigator) {
@@ -1832,11 +1931,11 @@ if ("serviceWorker" in navigator) {
       setInterval(() => checkForUpdate(false), UPDATE_EVERY);
     }).catch(() => {});
 
-    // Den nye version siger til, når den er aktiv
+    // Den nye version siger til, når den er aktiv — og hvilket build den er
     navigator.serviceWorker.addEventListener("message", (e) => {
-      if (e.data && e.data.type === "UPDATED") onUpdateActivated();
+      if (e.data && e.data.type === "UPDATED") onUpdateActivated(e.data.build);
     });
-    navigator.serviceWorker.addEventListener("controllerchange", onUpdateActivated);
+    navigator.serviceWorker.addEventListener("controllerchange", () => onUpdateActivated(null));
   });
 
   $("checkUpdateBtn").addEventListener("click", () => checkForUpdate(true));
@@ -1858,16 +1957,25 @@ function announceUpdate() {
   const known = opt.build;
   const knownCards = opt.cardCount || 0;
   const now = totalCards();
-  opt.build = BUILD;
-  opt.cardCount = now;
-  saveOpt();
-  if (!known || known === BUILD) return;          // første start eller samme version
+  if (!known || known === BUILD) {                 // første start eller samme version
+    if (opt.build !== BUILD || opt.cardCount !== now) { opt.build = BUILD; opt.cardCount = now; saveOpt(); }
+    return;
+  }
   const added = now - knownCards;
   showBanner(added > 0 ? "Opdateret ✓ " + added + " nye kort er kommet til." : "Appen er opdateret ✓", "OK", hideBanner);
   setTimeout(hideBanner, 6000);
+  // Først NU er nyheden leveret. Skrev vi den af som set, før banneret var
+  // oppe, ville en genindlæsning et øjeblik efter sluge den for altid.
+  opt.build = BUILD;
+  opt.cardCount = now;
+  saveOpt();
 }
 
 /* ---- Start ---- */
+// Alle dialoger, menuen og banneret starter lukkede — hold dem ude af
+// tabulator-rækkefølgen og skærmlæserens træ fra første færd.
+document.querySelectorAll(".modal, .modal-backdrop, .sheet, .sheet-backdrop, .banner")
+  .forEach((el) => { el.inert = !el.classList.contains("show"); });
 loadUsed();
 loadFav();
 loadOpt();
