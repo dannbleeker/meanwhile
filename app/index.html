@@ -176,6 +176,9 @@
   .view-toggle button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: var(--shadow-soft); }
 
   .tema-sections { display: flex; flex-direction: column; gap: 14px; }
+  /* 'hidden' skal vinde over display-reglerne ovenfor, ellers skifter
+     visningen ikke, når man slår mellem Temaer og Alle kategorier. */
+  .set-grid[hidden], .tema-sections[hidden] { display: none; }
   .tema { position: relative; border-radius: 24px; }
   /* Åbent tema = én sammenhængende, tonet flade, så kategorierne tydeligt
      ligger INDE i temaet. Tonen laves med et accent-lag (som selve kortene),
