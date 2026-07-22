@@ -19,6 +19,23 @@ python3 -m http.server 8000
 # åbn http://localhost:8000
 ```
 
+## Test
+
+Selve appen (`app/`) har ingen afhængigheder og intet build-trin. Der ligger
+dog let dev-værktøj i roden:
+
+```bash
+npm install            # engangs — henter Playwright
+npm run check-ids      # id- og tema-vagten (samme som i CI)
+npm run test:smoke     # røgtest af forsiden i en rigtig browser
+```
+
+Røgtesten (`tests/smoke.spec.js`) tjekker det, en statisk kontrol ikke kan se:
+at temaerne tegnes, at visningen faktisk skifter mellem Temaer og Alle
+kategorier, at et brugt kort overlever en genindlæsning, og at et delt link
+(`#/k/<kategori-id>`) åbner den rigtige kategori. Den kører på hver PR og hvert
+push til `main` ([`smoke.yml`](.github/workflows/smoke.yml)).
+
 ## Struktur
 
 ```

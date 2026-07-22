@@ -1,0 +1,13 @@
+{
+  "name": "meanwhile-samtalekort",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev-only tooling for the Meanwhile PWA. The app itself (app/) has no dependencies and no build step.",
+  "scripts": {
+    "check-ids": "node scripts/check-ids.mjs",
+    "test:smoke": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}

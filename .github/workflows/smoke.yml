@@ -1,0 +1,27 @@
+name: Smoke tests
+# Rendered-behaviour tests for the front page (view toggle, deep links,
+# persistence). Runs on PRs and on main so a UI regression is caught before it
+# ships — the kind of bug the id-guard can't see.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run smoke tests
+        run: npm run test:smoke
