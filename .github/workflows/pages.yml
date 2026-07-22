@@ -18,6 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Ingen udgivelse må bryde "brugt/færdig"-status. Status huskes pr.
+      # kort-id, så en dublet eller et forsvundet id ville koste brugerne deres
+      # historik ved netop denne opdatering. Vi stopper hellere før stemplingen.
+      - name: Tjek kort-id'ernes stabilitet
+        run: node scripts/check-ids.mjs
       # Stempler et build-id ind i appen. Det er DET, der får installerede
       # apps til at opdage en ny version — derfor skal pladsholderen findes,
       # ellers stopper vi hellere her.

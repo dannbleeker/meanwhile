@@ -1162,6 +1162,20 @@ const DATA = {
   ]
 };
 
+/* Udvikler-kanariefugl: "brugt/færdig"-status huskes pr. kort-id, så to kort
+   med samme id ville dele status. Det fanger CI (scripts/check-ids.mjs) før en
+   udgivelse, men her får du en advarsel med det samme, mens du redigerer
+   lokalt. Kører kun på localhost — brugerne ser aldrig noget. */
+(function warnOnDuplicateIds() {
+  const host = location.hostname;
+  if (host !== "localhost" && host !== "127.0.0.1" && host !== "") return;
+  const seen = new Set(), dupes = new Set();
+  DATA.sets.forEach((s) => s.cards.forEach((c) => {
+    if (seen.has(c.id)) dupes.add(c.id); else seen.add(c.id);
+  }));
+  if (dupes.size) console.warn("Meanwhile: kort-id'er brugt flere gange — brugt-status vil smitte mellem dem:", [...dupes]);
+})();
+
 /* ================================================================
    HUKOMMELSE — hvilke kort er brugt (gemt lokalt på enheden)
    ================================================================ */
