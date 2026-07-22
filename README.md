@@ -1,8 +1,9 @@
 # Meanwhile — Samtalekort
 
-En lille, installerbar web-app (PWA) med samtalekort til par. Man vælger et
-tema og bladrer gennem kortene ét ad gangen. Appen husker, hvilke kort der er
-brugt, virker offline og opdaterer sig selv, uden at nogen mister noget.
+En lille, installerbar web-app (PWA) med samtalekort til par. Forsiden grupperer
+kortene i **temaer** og **kategorier**; man vælger en kategori og bladrer gennem
+kortene ét ad gangen. Appen husker, hvilke kort der er brugt, virker offline og
+opdaterer sig selv, uden at nogen mister noget.
 
 Live: **https://meanwhile.retailforever.com/**
 
@@ -33,15 +34,30 @@ app/
 ## Rediger kortene
 
 Kortene ligger i `DATA`-objektet i `app/index.html` (søg efter `const DATA`).
-Modellen er fri:
-et vilkårligt antal `sets`, hvert med `title`, `description`, `emoji`/`image`,
-`accent` og et vilkårligt antal `cards` (`id`, `title`, valgfri `text`/`image`).
+Modellen er fri: et vilkårligt antal `sets` (i appen kaldet **kategorier**),
+hvert med `title`, `description`, `emoji`/`image`, `accent` og et vilkårligt
+antal `cards` (`id`, `title`, valgfri `text`/`image`).
 Behold `id`'erne stabile over versioner — de bruges til at huske "brugt"-status.
+
+### Temaer, kategorier og kort
+
+Forsiden grupperer kategorierne i **temaer**. Hierarkiet er:
+
+```
+TEMA (gruppe) → KATEGORI (et sæt i DATA) → KORT
+```
+
+Temaerne står i `const GROUPS` (rækkefølge, navn og farve), og hvert sæt siger
+selv, hvilket tema det hører til, via feltet `group` (fx `group: "par"`).
+Tilføjer du en ny kategori, så giv den et `group` med et tema-id fra `GROUPS` —
+ellers fejler `scripts/check-ids.mjs` (og dermed CI), så en kategori aldrig ved
+et uheld forsvinder fra den grupperede forside. Brugeren kan altid slå over til
+**Alle kategorier** og se den flade liste.
 
 ## Hukommelse
 
 Brugte kort gemmes lokalt i `localStorage` på enheden og nulstilles inde i
-appen (pr. tema eller for alle).
+appen (pr. kategori eller for alle).
 
 ### Færdige kort forbliver færdige — også efter en opdatering
 
@@ -58,6 +74,8 @@ filcacher, aldrig `localStorage`). Det hele står og falder derfor med, at
   lige før udgivelsen ([`pages.yml`](.github/workflows/pages.yml)) — en id-fejl
   når aldrig ud til nogen.
 - `scripts/known-card-ids.json` er hovedbogen over id'er, vi har sendt ud.
+- Samme tjek fejler også, hvis en kategori mangler feltet `group` eller peger på
+  et tema, der ikke findes i `GROUPS` — så forsiden ikke stille taber en kategori.
 
 Nye kort må du tilføje frit — nye `id`'er fejler aldrig. Retter du kun teksten
 på et kort, så behold `id`'et. **Pensionerer** du bevidst et kort (fjerner
@@ -73,7 +91,7 @@ Lokalt advarer appen dig også i konsollen, hvis to kort deler `id`.
 
 **Ret og push — resten sker af sig selv.**
 
-1. Ret indhold/kode i `app/index.html` (nye kort, nye temaer, rettelser).
+1. Ret indhold/kode i `app/index.html` (nye kort, nye kategorier, rettelser).
 2. Commit og push til `main`.
 
 GitHub Actions stempler et build-id ind i `app/sw.js` og `app/index.html` og
@@ -112,8 +130,8 @@ Opdateringen sker stille, uden at spørge:
 2. Den nye version hentes i baggrunden og bliver aktiv med det samme.
 3. Selve skiftet sker først, når I er på **forsiden** uden åben dialog. Ingen
    bliver afbrudt midt i et kort, og der kommer ikke noget "vil du opdatere?".
-   Er I midt i et tema, kommer den nye version, næste gang I lukker tilbage til
-   forsiden eller åbner appen igen.
+   Er I midt i en kategori, kommer den nye version, næste gang I lukker tilbage
+   til forsiden eller åbner appen igen.
 4. Er der kommet nye kort, siger appen kort til bagefter ("Opdateret ✓ 12 nye
    kort er kommet til").
 
@@ -121,18 +139,18 @@ Linket "Søg efter opdatering" nederst på forsiden gør det samme med det samme
 
 ### Hvad sker der med brugtes kort og indstillinger?
 
-Ingenting — de overlever. Brugte kort, favoritter, tema og "fortsæt her"
-ligger i `localStorage` og bliver aldrig rørt af en opdatering; kun appens egne
-filcacher ryddes. To ting holder det i live over tid:
+Ingenting — de overlever. Brugte kort, favoritter, udseende, forsidens visning
+og "fortsæt her" ligger i `localStorage` og bliver aldrig rørt af en opdatering;
+kun appens egne filcacher ryddes. To ting holder det i live over tid:
 
 - **Behold `id`'erne stabile.** `used`/`favorit` huskes pr. kort-`id` og pr.
-  sæt-`id`. Ændrer du teksten på et kort, beholder det sin historik; giver du
-  det et nyt `id`, tæller det som et nyt kort (som det skal, hvis spørgsmålet
+  kategori-`id`. Ændrer du teksten på et kort, beholder det sin historik; giver
+  du det et nyt `id`, tæller det som et nyt kort (som det skal, hvis spørgsmålet
   reelt er nyt).
-- **Tilføj frit.** Nye kort og nye temaer dukker bare op som ubrugte. Du må
-  gerne indsætte et nyt tema midt i rækken — "fortsæt her" gemmes på sæt-`id`,
-  ikke på pladsen i rækken (gamle installationer flyttes automatisk over ved
-  første start på den nye version).
+- **Tilføj frit.** Nye kort og nye kategorier dukker bare op som ubrugte. Du må
+  gerne indsætte en ny kategori midt i rækken — "fortsæt her" gemmes på
+  kategori-`id`, ikke på pladsen i rækken (gamle installationer flyttes
+  automatisk over ved første start på den nye version).
 
 ## Deploy
 

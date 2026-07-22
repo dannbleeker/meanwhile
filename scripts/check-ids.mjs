@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ================================================================
-   check-ids.mjs — vogter over kort-id'ernes stabilitet
+   check-ids.mjs — vogter over kort-id'ernes stabilitet og temaerne
    ----------------------------------------------------------------
    HVORFOR: "Brugt/færdig"-status huskes lokalt pr. kort-`id` i
    localStorage (nøglen samtalekort:used:v1). Så længe et kort
@@ -16,15 +16,18 @@
      2. Et id, der allerede er sendt ud, FORSVINDER eller bliver
         omdøbt. Så mister det kort sin historik ved næste opdatering.
 
-   Dette script fanger begge dele, før de kan nå ud til nogen.
+   Dertil vogter scriptet forsidens TEMAER: hvert sæt skal have et
+   'group', der findes i GROUPS, ellers ville kategorien forsvinde
+   fra den grupperede forside.
 
    BRUG:
      node scripts/check-ids.mjs          # tjek (bruges i CI)
      node scripts/check-ids.mjs --write   # opdatér hovedbogen bevidst
                                           # (fx når et kort er pensioneret)
 
-   Tilføj kort frit — nye id'er må gerne dukke op og fejler aldrig.
-   Kun DUBLETTER og FORSVUNDNE id'er stopper bygningen.
+   Tilføj kort og kategorier frit — nye id'er må gerne dukke op og
+   fejler aldrig. Kun DUBLETTER, FORSVUNDNE id'er og kategorier uden
+   et gyldigt tema stopper bygningen.
    ================================================================ */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -36,16 +39,13 @@ const INDEX = join(HERE, "..", "app", "index.html");
 const LEDGER = join(HERE, "known-card-ids.json");
 const WRITE = process.argv.includes("--write");
 
-/* ---- Træk DATA-objektet ud af index.html ------------------------
-   DATA er et rent objekt-litteral (kun strenge og tal), så vi kan
-   klippe det ud med en klammematchning, der springer strenge over,
-   og evaluere det i en sandkasse uden bivirkninger. */
-function extractData(html) {
-  const marker = "const DATA = {";
-  const at = html.indexOf(marker);
-  if (at === -1) throw new Error("kunne ikke finde 'const DATA = {' i app/index.html");
-  const start = html.indexOf("{", at);
-
+/* ---- Træk et rent litteral (DATA, GROUPS) ud af index.html
+   Det er rene objekt-/array-litteraler (kun strenge og tal), så vi kan
+   klippe dem ud med en klammematchning, der springer strenge over, og
+   evaluere dem i en sandkasse uden bivirkninger. */
+function sliceLiteral(html, fromIndex, open, close) {
+  const start = html.indexOf(open, fromIndex);
+  if (start === -1) throw new Error("fandt ikke '" + open + "' efter position " + fromIndex);
   let depth = 0, quote = null, escaped = false;
   for (let i = start; i < html.length; i++) {
     const ch = html[i];
@@ -56,17 +56,20 @@ function extractData(html) {
       continue;
     }
     if (ch === '"' || ch === "'" || ch === "`") { quote = ch; continue; }
-    if (ch === "{") depth++;
-    else if (ch === "}") {
+    if (ch === open) depth++;
+    else if (ch === close) {
       depth--;
-      if (depth === 0) {
-        const objText = html.slice(start, i + 1);
-        // eslint-disable-next-line no-new-func
-        return Function('"use strict"; return (' + objText + ");")();
-      }
+      if (depth === 0) return html.slice(start, i + 1);
     }
   }
-  throw new Error("fandt ikke slutningen på DATA-objektet");
+  throw new Error("fandt ikke slutningen på litteralet for '" + open + close + "'");
+}
+function evalConst(html, name, open, close) {
+  const at = html.indexOf("const " + name + " =");
+  if (at === -1) throw new Error("kunne ikke finde 'const " + name + "' i app/index.html");
+  const text = sliceLiteral(html, at, open, close);
+  // eslint-disable-next-line no-new-func
+  return Function('"use strict"; return (' + text + ");")();
 }
 
 /* ---- Saml id'er og find dubletter ------------------------------ */
@@ -107,14 +110,28 @@ function loadLedger() {
 
 function main() {
   const html = readFileSync(INDEX, "utf8");
-  const now = collect(extractData(html));
-  const problems = [];
+  const data = evalConst(html, "DATA", "{", "}");
+  const now = collect(data);
 
-  // 1) Dubletter — altid en fejl.
-  if (now.dupCards.length) problems.push("Kort-id'er brugt mere end én gang: " + now.dupCards.join(", "));
-  if (now.dupSets.length) problems.push("Sæt-id'er brugt mere end én gang: " + now.dupSets.join(", "));
+  // Strukturfejl — altid en fejl, uanset --write.
+  const structural = [];
+  if (now.dupCards.length) structural.push("Kort-id'er brugt mere end én gang: " + now.dupCards.join(", "));
+  if (now.dupSets.length) structural.push("Sæt-id'er brugt mere end én gang: " + now.dupSets.join(", "));
 
-  // 2) Forsvundne id'er — id'er, vi har sendt ud før, men som er væk nu.
+  // Temaer: hver kategori (sæt) skal have et 'group', der findes i GROUPS.
+  const groups = evalConst(html, "GROUPS", "[", "]");
+  const groupIds = new Set(groups.map((g) => g.id));
+  const missingGroup = data.sets.filter((s) => s.group == null).map((s) => s.id);
+  const badGroup = data.sets.filter((s) => s.group != null && !groupIds.has(s.group)).map((s) => s.id + "→" + s.group);
+  if (missingGroup.length) structural.push(
+    "Kategorier uden tema (mangler feltet 'group'): " + missingGroup.join(", ") +
+    "\n    -> Giv hver ny kategori et 'group' med et tema-id fra GROUPS."
+  );
+  if (badGroup.length) structural.push(
+    "Kategorier med et 'group', der ikke findes i GROUPS: " + badGroup.join(", ")
+  );
+
+  // Forsvundne id'er — id'er, vi har sendt ud før, men som er væk nu.
   const ledger = loadLedger();
   const nowCards = new Set(now.cards);
   const nowSets = new Set(now.sets);
@@ -123,15 +140,18 @@ function main() {
 
   if (WRITE) {
     writeFileSync(LEDGER, JSON.stringify({ cards: now.cards, sets: now.sets }, null, 2) + "\n");
-    console.log(`Hovedbog opdateret: ${now.cards.length} kort-id'er, ${now.sets.length} sæt-id'er.`);
-    if (now.dupCards.length || now.dupSets.length) {
-      console.error("\nADVARSEL: der er stadig dubletter — dem skal du rette:");
-      problems.forEach((p) => console.error("  - " + p));
+    console.log(`Hovedbog opdateret: ${now.cards.length} kort-id'er, ${now.sets.length} kategori-id'er.`);
+    if (structural.length) {
+      console.error("\nADVARSEL: der er stadig strukturfejl, som du skal rette:");
+      structural.forEach((p) => console.error("  - " + p));
       process.exit(1);
     }
     return;
   }
 
+  // structural bruges ikke efter WRITE-grenen (som returnerer), så vi må gerne
+  // bygge videre på selve arrayet her.
+  const problems = structural;
   if (goneCards.length) {
     problems.push(
       "Kort-id'er, der er sendt ud før, men mangler nu: " + goneCards.join(", ") +
@@ -142,21 +162,21 @@ function main() {
   }
   if (goneSets.length) {
     problems.push(
-      "Sæt-id'er, der er sendt ud før, men mangler nu: " + goneSets.join(", ") +
+      "Kategori-id'er, der er sendt ud før, men mangler nu: " + goneSets.join(", ") +
       "\n    -> Sæt id'et tilbage, eller bekræft ændringen med: node scripts/check-ids.mjs --write"
     );
   }
 
   if (problems.length) {
-    console.error("check-ids: kort-id'ernes stabilitet er brudt —\n");
+    console.error("check-ids: kort-id'ernes stabilitet eller temaerne er brudt —\n");
     problems.forEach((p) => console.error("  - " + p + "\n"));
     process.exit(1);
   }
 
   const added = now.cards.filter((id) => !ledger.cards.includes(id)).length;
   console.log(
-    `check-ids: OK — ${now.cards.length} kort-id'er, ${now.sets.length} sæt-id'er, ingen dubletter, ingen forsvundne.` +
-    (added ? ` (${added} nye siden hovedbogen — helt fint.)` : "")
+    `check-ids: OK — ${now.cards.length} kort-id'er, ${now.sets.length} kategorier i ${groups.length} temaer, ingen dubletter, ingen forsvundne.` +
+    (added ? ` (${added} nye kort siden hovedbogen — helt fint.)` : "")
   );
 }
 

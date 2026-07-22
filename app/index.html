@@ -26,7 +26,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Samtalekort">
 <script>
-  /* Sæt tema før siden tegnes, så splash/app ikke blinker lyst i mørk tilstand */
+  /* Sæt udseende før siden tegnes, så splash/app ikke blinker lyst i mørk tilstand */
   try {
     var o = JSON.parse(localStorage.getItem("samtalekort:opt:v1") || "{}");
     var dark = o.theme === "dark" || ((!o.theme || o.theme === "auto") && matchMedia("(prefers-color-scheme: dark)").matches);
@@ -102,7 +102,7 @@
 
   /* ---------- Topbar ---------- */
   .topbar { display: flex; align-items: center; gap: 12px; min-height: 44px; margin-bottom: 8px; }
-  /* min-width: 0, så titlen skrumper i stedet for at skubbe "‹ Sæt" ud over
+  /* min-width: 0, så titlen skrumper i stedet for at skubbe "‹ Forsiden" ud over
      kanten på meget smalle skærme (og med overflow-x: hidden ud af syne). */
   .brand { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .brand span { font-size: 22px; }
@@ -117,7 +117,7 @@
   .spacer { flex: 1; }
 
   /* ============================================================
-     SKÆRM 1 — VALG AF SÆT
+     SKÆRM 1 — VALG AF KATEGORI (grupperet i temaer)
      ============================================================ */
   .home-head { margin: 6px 2px 20px; }
   .home-head h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(30px, 8vw, 42px); line-height: 1.05; margin-bottom: 8px; }
@@ -144,7 +144,7 @@
   .set-body p { color: var(--ink-soft); font-size: 14.5px; font-weight: 600; line-height: 1.35; }
   .set-body .set-meta-line { display: block; margin-top: 6px; font-size: 12.5px; font-weight: 800; color: var(--ink-soft); }
   .set-body .set-meta-line b { color: var(--good); font-weight: 800; }
-  /* Usynlig knap der dækker hele feltet og åbner sættet */
+  /* Usynlig knap der dækker hele feltet og åbner kategorien */
   .set-open { position: absolute; inset: 0; border: none; background: transparent; cursor: pointer; z-index: 2; border-radius: inherit; }
   /* "?"-knap: træk et tilfældigt kort fra samlingen */
   .set-shuffle {
@@ -161,6 +161,56 @@
   .home-foot { margin-top: 22px; text-align: center; color: var(--ink-soft); font-size: 12.5px; font-weight: 700; }
   .home-foot .link { text-decoration: underline; cursor: pointer; }
   .home-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+
+  /* ---------- Temaer: grupper af kategorier på forsiden ---------- */
+  .view-toggle {
+    display: inline-flex; gap: 4px; padding: 4px; margin: 2px 0 18px;
+    background: rgba(255,255,255,0.55); backdrop-filter: blur(6px);
+    border-radius: 999px; box-shadow: var(--shadow-soft);
+  }
+  .view-toggle button {
+    border: none; background: transparent; color: var(--ink-soft); font-family: inherit;
+    font-weight: 800; font-size: 14.5px; padding: 9px 18px; border-radius: 999px;
+    cursor: pointer; transition: color .15s ease, background .18s ease;
+  }
+  .view-toggle button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: var(--shadow-soft); }
+
+  .tema-sections { display: flex; flex-direction: column; gap: 14px; }
+  .tema { position: relative; border-radius: 24px; }
+  /* Åbent tema = én sammenhængende, tonet flade, så kategorierne tydeligt
+     ligger INDE i temaet. Tonen laves med et accent-lag (som selve kortene),
+     så vi ikke er afhængige af color-mix på ældre browsere. */
+  .tema.open { box-shadow: var(--shadow-soft); outline: 1.5px solid var(--tema-accent); outline-offset: -1.5px; padding-bottom: 12px; }
+  .tema.open::before { content: ""; position: absolute; inset: 0; background: var(--tema-accent); opacity: 0.12; border-radius: 24px; z-index: 0; pointer-events: none; }
+
+  .tema-head {
+    position: relative; z-index: 1; width: 100%; border: none; cursor: pointer; text-align: left;
+    font-family: inherit; color: var(--ink);
+    background: rgba(255,255,255,0.55); backdrop-filter: blur(8px);
+    border-radius: 22px; padding: 17px 20px; box-shadow: var(--shadow-soft);
+    display: flex; align-items: center; gap: 14px; transition: background .15s ease;
+  }
+  .tema-head:hover { background: rgba(255,255,255,0.78); }
+  .tema.open .tema-head { background: transparent; box-shadow: none; border-radius: 24px 24px 0 0; border-bottom: 1.5px solid var(--tema-accent); }
+  .tema-head .tema-dot { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 14px; background: var(--tema-accent); }
+  .tema-head h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; margin: 0; flex: 1; min-width: 0; }
+  .tema-head .tema-count { font-size: 13px; font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+  .tema-chev { width: 20px; height: 20px; flex: 0 0 20px; color: var(--ink-soft); transition: transform .22s ease; }
+  .tema-head[aria-expanded="true"] .tema-chev { transform: rotate(180deg); }
+
+  .tema-body { position: relative; z-index: 1; padding: 6px 16px 2px; }
+  .tema-body[hidden] { display: none; }
+  .tema-body-label { font-size: 11.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--ink-soft); padding: 8px 0 10px 18px; margin: 0; }
+  .tema-rail { display: grid; gap: 12px; padding-left: 18px; margin-left: 4px; border-left: 3px solid var(--tema-accent); }
+  /* Hver kategori får samme venstrekant i temaets farve — et klart "hører til". */
+  .tema-rail .set-card { box-shadow: var(--shadow-soft), inset 4px 0 0 -1px var(--tema-accent); }
+
+  html.dark .view-toggle { background: rgba(255,255,255,0.06); }
+  html.dark .view-toggle button[aria-pressed="true"] { background: rgba(255,255,255,0.16); }
+  html.dark .tema-head { background: rgba(255,255,255,0.06); }
+  html.dark .tema-head:hover { background: rgba(255,255,255,0.10); }
+  html.dark .tema.open .tema-head { background: transparent; }
+  @media (prefers-reduced-motion: reduce) { .tema-chev, .view-toggle button { transition: none; } }
 
   /* ============================================================
      SKÆRM 2 — KORT
@@ -379,7 +429,7 @@
       <div class="brand"><span>💬</span> Samtalekort</div>
       <div class="spacer"></div>
       <button class="pill-btn icon-only" id="menuBtn" style="display:none" aria-label="Menu">⋯</button>
-      <button class="pill-btn" id="backBtn" style="display:none">‹ Sæt</button>
+      <button class="pill-btn" id="backBtn" style="display:none">‹ Forsiden</button>
     </div>
 
     <!-- SKÆRM 1 -->
@@ -388,6 +438,11 @@
         <h1 id="homeTitle"></h1>
         <p id="homeSub"></p>
       </div>
+      <div class="view-toggle" id="homeViewToggle" role="group" aria-label="Visning">
+        <button type="button" id="viewTemaerBtn" aria-pressed="true">Temaer</button>
+        <button type="button" id="viewAlleBtn" aria-pressed="false">Alle kategorier</button>
+      </div>
+      <div class="tema-sections" id="temaSections"></div>
       <div class="set-grid" id="setGrid"></div>
       <div class="home-actions">
         <button class="pill-btn" id="resumeBtn" style="display:none"></button>
@@ -420,10 +475,10 @@
     <button class="ghost-btn" id="shuffleBtn">🎲 Tilfældigt kort</button>
     <button class="ghost-btn" id="onlyUnusedBtn">Kun ubrugte: fra</button>
     <button class="ghost-btn" id="nextUnusedBtn">Næste ubrugte →</button>
-    <button class="ghost-btn" id="resetSetBtn">Nulstil dette sæt</button>
-    <button class="ghost-btn" id="themeBtn">Tema: Auto</button>
+    <button class="ghost-btn" id="resetSetBtn">Nulstil denne kategori</button>
+    <button class="ghost-btn" id="themeBtn">Udseende: Auto</button>
     <button class="ghost-btn" id="guideBtn">Sådan bruger du kortene</button>
-    <p class="sheet-hint">Swipe ↔ skift kort · swipe ↕ skift sæt · ♥ favorit · 📤 del</p>
+    <p class="sheet-hint">Swipe ↔ skift kort · swipe ↕ skift kategori · ♥ favorit · 📤 del</p>
   </div>
 
   <!-- Intro-vejledning -->
@@ -432,7 +487,7 @@
     <h3 class="modal-title">Sådan bruger du kortene</h3>
     <ul class="intro-list">
       <li><span class="intro-ic">↔</span> Swipe til siden — skift kort</li>
-      <li><span class="intro-ic">↕</span> Swipe op/ned — skift tema-sæt</li>
+      <li><span class="intro-ic">↕</span> Swipe op/ned — skift kategori</li>
       <li><span class="intro-ic">♥</span> Gem et kort som favorit</li>
       <li><span class="intro-ic">📤</span> Del et kort</li>
       <li><span class="intro-ic">⋯</span> Flere valg i menuen</li>
@@ -458,14 +513,14 @@
     <button class="modal-btn" id="aboutClose">Luk</button>
   </div>
 
-  <!-- Fejring når et sæt er gennemført -->
+  <!-- Fejring når en kategori er gennemført -->
   <div class="modal-backdrop" id="celebrateBackdrop"></div>
   <div class="modal" id="celebrate" role="dialog" aria-modal="true">
     <div class="modal-big">🎉</div>
     <h3 class="modal-title">Godt gået!</h3>
     <p class="modal-text" id="celebrateText"></p>
-    <button class="modal-btn" id="celebrateNext">Næste sæt →</button>
-    <button class="modal-btn ghost" id="celebrateReset">Nulstil sættet</button>
+    <button class="modal-btn" id="celebrateNext">Næste kategori →</button>
+    <button class="modal-btn ghost" id="celebrateReset">Nulstil kategorien</button>
     <button class="modal-btn ghost" id="celebrateClose">Luk</button>
   </div>
 
@@ -503,10 +558,10 @@ const BUILD = "__BUILD__";              // stemples automatisk i CI
    ================================================================ */
 const DATA = {
   title: "Hvad skal vi tale om?",
-  subtitle: "Vælg et tema og tag en snak — ét kort ad gangen.",
+  subtitle: "Vælg en kategori og tag en snak — ét kort ad gangen.",
   sets: [
     {
-      id: "fremtid", title: "Fremtid & drømme", description: "Ægteskab, børn, rejser og hvor vi er på vej hen.",
+      id: "fremtid", group: "par", title: "Fremtid & drømme", description: "Ægteskab, børn, rejser og hvor vi er på vej hen.",
       emoji: "🌅", accent: "#ffd0b8",
       cards: [
         { id: "c1", title: "Hvordan ser vores forhold ud om 5, 10 og 15 år?" },
@@ -529,7 +584,7 @@ const DATA = {
       ]
     },
     {
-      id: "kaerlighed", title: "Kærlighed & forelskelse", description: "Gnisten, begyndelsen og hvad kærlighed er for os.",
+      id: "kaerlighed", group: "par", title: "Kærlighed & forelskelse", description: "Gnisten, begyndelsen og hvad kærlighed er for os.",
       emoji: "💘", accent: "#ffc2d4",
       cards: [
         { id: "c15", title: "Hvad er kærlighed for dig?" },
@@ -550,7 +605,7 @@ const DATA = {
       ]
     },
     {
-      id: "os-to", title: "Os to — gode stunder", description: "Minder, taknemmelighed og det bedste ved os.",
+      id: "os-to", group: "par", title: "Os to — gode stunder", description: "Minder, taknemmelighed og det bedste ved os.",
       emoji: "✨", accent: "#ffdf9e",
       cards: [
         { id: "c29", title: "Hvilke tre ord beskriver vores parforhold bedst?" },
@@ -568,7 +623,7 @@ const DATA = {
       ]
     },
     {
-      id: "date", title: "Date & kvalitetstid", description: "Sådan er vi bedst sammen — og hvad vi burde prøve.",
+      id: "date", group: "par", title: "Date & kvalitetstid", description: "Sådan er vi bedst sammen — og hvad vi burde prøve.",
       emoji: "🍽️", accent: "#c9e7d0",
       cards: [
         { id: "c46", title: "Hvad er din foretrukne måde at tilbringe kvalitetstid sammen på?" },
@@ -585,7 +640,7 @@ const DATA = {
       ]
     },
     {
-      id: "vaerdier", title: "Værdier & forbilleder", description: "Hvad der betyder mest, og de forhold vi ser op til.",
+      id: "vaerdier", group: "dig", title: "Værdier & forbilleder", description: "Hvad der betyder mest, og de forhold vi ser op til.",
       emoji: "🧭", accent: "#cfe0ff",
       cards: [
         { id: "c35", title: "Hvad er det vigtigste for dig i et forhold?" },
@@ -603,7 +658,7 @@ const DATA = {
       ]
     },
     {
-      id: "holdninger", title: "Holdninger til kærlighed & livet", description: "De større spørgsmål — syn på kærlighed, ærlighed og valg.",
+      id: "holdninger", group: "par", title: "Holdninger til kærlighed & livet", description: "De større spørgsmål — syn på kærlighed, ærlighed og valg.",
       emoji: "💭", accent: "#e2d1ff",
       cards: [
         { id: "c24", title: "Ville du ofre dine karrieremål for kærligheden?" },
@@ -621,7 +676,7 @@ const DATA = {
       ]
     },
     {
-      id: "det-indre", title: "Det indre — dig", description: "Drømme, frygt og det, du sjældent sætter ord på.",
+      id: "det-indre", group: "dig", title: "Det indre — dig", description: "Drømme, frygt og det, du sjældent sætter ord på.",
       emoji: "🌙", accent: "#d9c9ff",
       cards: [
         { id: "c4", title: "Har du nogle dårlige vaner, du gerne vil lave om på?" },
@@ -642,7 +697,7 @@ const DATA = {
       ]
     },
     {
-      id: "naerhed", title: "Nærhed, tillid & vækst", description: "Tryghed, omsorg og hvordan vi vokser sammen.",
+      id: "naerhed", group: "par", title: "Nærhed, tillid & vækst", description: "Tryghed, omsorg og hvordan vi vokser sammen.",
       emoji: "🌱", accent: "#bfe6d0",
       cards: [
         { id: "c38", title: "Føler du dig tryg i vores forhold?" },
@@ -664,7 +719,7 @@ const DATA = {
       ]
     },
     {
-      id: "udfordringer", title: "Udfordringer & ærlighed", description: "De ærlige kort — når det er svært mellem jer: irritationer, skænderier og det skrøbelige.",
+      id: "udfordringer", group: "par", title: "Udfordringer & ærlighed", description: "De ærlige kort — når det er svært mellem jer: irritationer, skænderier og det skrøbelige.",
       emoji: "🌦️", accent: "#ffd6c2",
       cards: [
         { id: "c37", title: "Hvordan har du det med vores forhold lige nu?" },
@@ -682,7 +737,7 @@ const DATA = {
       ]
     },
     {
-      id: "intimitet", title: "Intimitet & sex", description: "De mere private kort — når I er klar.",
+      id: "intimitet", group: "par", title: "Intimitet & sex", description: "De mere private kort — når I er klar.",
       emoji: "🔥", accent: "#ffb3b3",
       cards: [
         { id: "c79", title: "Hvad er din største seksuelle fantasi?" },
@@ -702,7 +757,7 @@ const DATA = {
       ]
     },
     {
-      id: "de-mindste", title: "De mindste (ca. 4-5 år)", description: "Korte, konkrete spørgsmål til de allermindste.",
+      id: "de-mindste", group: "born", title: "De mindste (ca. 4-5 år)", description: "Korte, konkrete spørgsmål til de allermindste.",
       emoji: "🧸", accent: "#d9edb3",
       cards: [
         { id: "c325", title: "Hvad var det sjoveste, du legede i dag?" },
@@ -723,7 +778,7 @@ const DATA = {
       ]
     },
     {
-      id: "boern", title: "For skolebørnene (ca. 6-9 år)", description: "Sjove og nære spørgsmål til skolebørnene — fra fjolleri til de vigtige snakke.",
+      id: "boern", group: "born", title: "For skolebørnene (ca. 6-9 år)", description: "Sjove og nære spørgsmål til skolebørnene — fra fjolleri til de vigtige snakke.",
       emoji: "🧒", accent: "#ffdf8a",
       cards: [
         { id: "c89", title: "Hvis du kunne få én superkraft, hvilken skulle det være — og hvad ville du bruge den til?" },
@@ -785,7 +840,7 @@ const DATA = {
       ]
     },
     {
-      id: "storre-born", title: "Større børn & unge (ca. 10-16 år)", description: "Ærlige kort til en snak med et større barn eller en ung.",
+      id: "storre-born", group: "born", title: "Større børn & unge (ca. 10-16 år)", description: "Ærlige kort til en snak med et større barn eller en ung.",
       emoji: "🧑", accent: "#c3b8f0",
       cards: [
         { id: "c233", title: "Hvad forstår voksne ikke ved at være på din alder?" },
@@ -823,7 +878,7 @@ const DATA = {
       ]
     },
     {
-      id: "undring", title: "Filosofi for børn (fra ca. 10 år)", description: "Spørgsmål uden facit — til et barn, der gerne vil tænke højt.",
+      id: "undring", group: "born", title: "Filosofi for børn (fra ca. 10 år)", description: "Spørgsmål uden facit — til et barn, der gerne vil tænke højt.",
       emoji: "🦉", accent: "#a6dee8",
       cards: [
         { id: "c452", title: "Er du den samme person nu, som da du var tre år? Hvad er stadig det samme?" },
@@ -870,7 +925,7 @@ const DATA = {
       ]
     },
     {
-      id: "livet-set-tilbage", title: "Livet set tilbage", description: "Til mor, far eller bedsteforældre — få historien fortalt.",
+      id: "livet-set-tilbage", group: "dig", title: "Livet set tilbage", description: "Til mor, far eller bedsteforældre — få historien fortalt.",
       emoji: "🌳", accent: "#e8cfa9",
       cards: [
         { id: "c372", title: "Hvordan var din barndom egentlig?" },
@@ -890,7 +945,7 @@ const DATA = {
       ]
     },
     {
-      id: "god-ven", title: "Til en god ven", description: "Den snak, der går videre end “hvordan går det?”",
+      id: "god-ven", group: "venner", title: "Til en god ven", description: "Den snak, der går videre end “hvordan går det?”",
       emoji: "☕", accent: "#d6c3b0",
       cards: [
         { id: "c386", title: "Hvordan har du det virkelig — ikke bare \"fint\"?" },
@@ -909,7 +964,7 @@ const DATA = {
       ]
     },
     {
-      id: "sjov-leg", title: "Sjov & leg", description: "Lette, fjollede kort til en afslappet aften.",
+      id: "sjov-leg", group: "venner", title: "Sjov & leg", description: "Lette, fjollede kort til en afslappet aften.",
       emoji: "🎉", accent: "#ffcf6b",
       cards: [
         { id: "c173", title: "Hvis vores liv var en tv-serie, hvad skulle den hedde?" },
@@ -927,7 +982,7 @@ const DATA = {
       ]
     },
     {
-      id: "minder", title: "Minder & vores historie", description: "Se tilbage på det, vi har sammen.",
+      id: "minder", group: "venner", title: "Minder & vores historie", description: "Se tilbage på det, vi har sammen.",
       emoji: "📸", accent: "#f7b9a3",
       cards: [
         { id: "c185", title: "Hvad husker du bedst fra vores første date?" },
@@ -946,7 +1001,7 @@ const DATA = {
       ]
     },
     {
-      id: "hverdag", title: "Hverdag & praktik", description: "Det jordnære, der alligevel betyder noget.",
+      id: "hverdag", group: "anledninger", title: "Hverdag & praktik", description: "Det jordnære, der alligevel betyder noget.",
       emoji: "🏠", accent: "#b8d9e6",
       cards: [
         { id: "c197", title: "Hvordan deler vi bedst det derhjemme, så det føles fair?" },
@@ -965,7 +1020,7 @@ const DATA = {
       ]
     },
     {
-      id: "middagsbordet", title: "Middagsbordet", description: "For både store og små ved bordet.",
+      id: "middagsbordet", group: "anledninger", title: "Middagsbordet", description: "For både store og små ved bordet.",
       emoji: "🍽️", accent: "#ffcf9e",
       cards: [
         { id: "c209", title: "Hvad var det bedste ved din dag i dag?" },
@@ -991,7 +1046,7 @@ const DATA = {
       ]
     },
     {
-      id: "bilturen", title: "Bilturen & rejsen", description: "Til de lange ture og de store rejser.",
+      id: "bilturen", group: "anledninger", title: "Bilturen & rejsen", description: "Til de lange ture og de store rejser.",
       emoji: "🚗", accent: "#a9dcc0",
       cards: [
         { id: "c221", title: "Hvis vi kunne teleportere hen et sted nu, hvor skulle det være?" },
@@ -1009,7 +1064,7 @@ const DATA = {
       ]
     },
     {
-      id: "jul", title: "Jul & højtider", description: "Til bordet i december.",
+      id: "jul", group: "anledninger", title: "Jul & højtider", description: "Til bordet i december.",
       emoji: "🎄", accent: "#e6a9a9",
       cards: [
         { id: "c409", title: "Hvad betyder julen for dig?" },
@@ -1034,7 +1089,7 @@ const DATA = {
       ]
     },
     {
-      id: "nytaar", title: "Nytår & refleksion", description: "Ved årsskiftet.",
+      id: "nytaar", group: "anledninger", title: "Nytår & refleksion", description: "Ved årsskiftet.",
       emoji: "✨", accent: "#cfd4ff",
       cards: [
         { id: "c257", title: "Hvad er du mest stolt af i år?" },
@@ -1060,7 +1115,7 @@ const DATA = {
       ]
     },
     {
-      id: "taknemmelighed", title: "Tak & eftertanke", description: "Til en stille stund, året rundt — det, du er glad for.",
+      id: "taknemmelighed", group: "dig", title: "Tak & eftertanke", description: "Til en stille stund, året rundt — det, du er glad for.",
       emoji: "🙏", accent: "#f2ddc0",
       cards: [
         { id: "c424", title: "Hvem i dit liv er du glad for at have?" },
@@ -1079,7 +1134,7 @@ const DATA = {
       ]
     },
     {
-      id: "store-sporgsmaal", title: "De store spørgsmål", description: "Mening, død og frihed — om dit eget liv.",
+      id: "store-sporgsmaal", group: "dig", title: "De store spørgsmål", description: "Mening, død og frihed — om dit eget liv.",
       emoji: "🌌", accent: "#b7b0d6",
       cards: [
         { id: "c269", title: "Hvad giver dit liv mening lige nu?" },
@@ -1097,7 +1152,7 @@ const DATA = {
       ]
     },
     {
-      id: "naar-det-er-svaert", title: "Når noget er svært", description: "Når livet rammer en, du holder af — og du gerne vil sidde ved siden af.",
+      id: "naar-det-er-svaert", group: "dig", title: "Når noget er svært", description: "Når livet rammer en, du holder af — og du gerne vil sidde ved siden af.",
       emoji: "🤝", accent: "#bcd8d4",
       cards: [
         { id: "c437", title: "Hvordan har du det med det, der sker lige nu?" },
@@ -1118,7 +1173,7 @@ const DATA = {
       ]
     },
     {
-      id: "naerhed-36", title: "36 spørgsmål til nærhed", description: "Den berømte serie (Arthur Aron), der gradvist skaber tættere bånd.",
+      id: "naerhed-36", group: "par", title: "36 spørgsmål til nærhed", description: "Den berømte serie (Arthur Aron), der gradvist skaber tættere bånd.",
       emoji: "💞", accent: "#ffb6c9",
       cards: [
         { id: "c281", title: "Hvis du kunne vælge hvem som helst i verden, hvem ville du invitere til middag?" },
@@ -1177,6 +1232,27 @@ const DATA = {
 })();
 
 /* ================================================================
+   TEMAER — forsiden grupperer kategorierne (sættene) i temaer.
+   Hierarki: TEMA (gruppe) → KATEGORI (et sæt i DATA) → KORT.
+   'GROUPS' er temaerne i den rækkefølge, de vises. Hvert sæt siger
+   selv, hvilket tema det hører til, via feltet 'group' (fx
+   group: "par") — så et tema kan ikke drive fra kategorilisten.
+   Rækkefølgen INDE i et tema følger DATA. Hver kategori skal have
+   et 'group', der findes i GROUPS — scripts/check-ids.mjs fejler
+   ellers, så en kategori aldrig forsvinder fra forsiden.
+
+   NB: "tema" (dansk, en gruppe her) er IKKE det samme som 'theme'
+   (engelsk, lys/mørk-udseendet i applyTheme/opt.theme).
+   ================================================================ */
+const GROUPS = [
+  { id: "par",         label: "For jer to",             accent: "#ff9ebb" },
+  { id: "dig",         label: "Dig selv & eftertanke",  accent: "#a99be6" },
+  { id: "born",        label: "Til børn",               accent: "#f2c14e" },
+  { id: "venner",      label: "Venner & sjov",          accent: "#ef9a76" },
+  { id: "anledninger", label: "Anledninger & hverdag",  accent: "#5fb3cf" },
+];
+
+/* ================================================================
    HUKOMMELSE — hvilke kort er brugt (gemt lokalt på enheden)
    ================================================================ */
 const STORE_KEY = "samtalekort:used:v1";
@@ -1204,10 +1280,10 @@ const isFav = (id) => !!favStore[id];
 function setFav(id, val) { if (val) favStore[id] = 1; else delete favStore[id]; saveFav(); }
 function allFavCards() { const out = []; DATA.sets.forEach((s) => s.cards.forEach((c) => { if (isFav(c.id)) out.push(c); })); return out; }
 
-/* Indstillinger (kun ubrugte, tema, intro, sidste position) */
+/* Indstillinger (kun ubrugte, udseende, intro, sidste position) */
 const OPT_KEY = "samtalekort:opt:v1";
-const OPT_SCHEMA = 2;
-let opt = { onlyUnused: false, seenIntro: false, theme: "auto", last: null, schema: OPT_SCHEMA, build: null, cardCount: 0 };
+const OPT_SCHEMA = 3;
+let opt = { onlyUnused: false, seenIntro: false, theme: "auto", last: null, schema: OPT_SCHEMA, build: null, cardCount: 0, homeView: "temaer", groupState: {} };
 let onlyUnused = false;
 function loadOpt() {
   try { const o = JSON.parse(localStorage.getItem(OPT_KEY) || "{}"); if (o) opt = Object.assign(opt, o); } catch (e) {}
@@ -1220,19 +1296,22 @@ function saveOpt() { opt.onlyUnused = onlyUnused; try { localStorage.setItem(OPT
    Vi sletter aldrig noget, vi ikke forstår — ukendte felter får
    lov at blive liggende, så en ældre app ikke taber dem. */
 function migrateOpt() {
-  // v1 gemte "fortsæt her"-positionen som et sæt-NUMMER. Når der
-  // kommer nye temaer til, flytter numrene sig — så nu gemmer vi
-  // sættets id i stedet. Vi finder det rigtige sæt via KORTET, ikke
+  // v1 gemte "fortsæt her"-positionen som et kategori-NUMMER. Når der
+  // kommer nye kategorier til, flytter numrene sig — så nu gemmer vi
+  // kategoriens id i stedet. Vi finder den rigtige kategori via KORTET, ikke
   // via nummeret: nummeret peger på den gamle rækkefølge, mens
-  // kort-id'et er det samme uanset hvordan temaerne er sorteret.
+  // kort-id'et er det samme uanset hvordan kategorierne er sorteret.
   if (opt.last && opt.last.setId == null) {
     const owner = DATA.sets.find((s) => s.cards.some((c) => c.id === opt.last.cardId));
     const byIndex = typeof opt.last.setIndex === "number" ? DATA.sets[opt.last.setIndex] : null;
     const s = owner || byIndex;
     opt.last = s ? { setId: s.id, cardId: opt.last.cardId } : null;
   }
-  // Peger positionen på et tema, der ikke findes længere, glemmer vi den.
+  // Peger positionen på en kategori, der ikke findes længere, glemmer vi den.
   if (opt.last && setIndexById(opt.last.setId) < 0) opt.last = null;
+  // Forsidens visning + foldetilstand kom til i skema 3.
+  if (opt.homeView !== "temaer" && opt.homeView !== "alle") opt.homeView = "temaer";
+  if (!opt.groupState || typeof opt.groupState !== "object") opt.groupState = {};
   opt.schema = OPT_SCHEMA;
 }
 const setIndexById = (id) => DATA.sets.findIndex((s) => s.id === id);
@@ -1249,31 +1328,119 @@ function renderHome() {
   $("homeSub").textContent = DATA.subtitle || "";
   updateFavBtn();
   updateResumeBtn();
+  syncViewToggle();
+  const temaer = opt.homeView !== "alle";
+  $("temaSections").hidden = !temaer;
+  $("setGrid").hidden = temaer;
+  if (temaer) renderTemaer(); else renderFlat();
+  $("versionLabel").textContent = "Version " + APP_VERSION + (memoryOK ? "" : " · (hukommelse er slået fra i forhåndsvisning)");
+}
+
+// Ét kort-element for en kategori (et sæt). Genbruges i begge visninger.
+function renderSetCard(set, i) {
+  const n = set.cards.length;
+  const usedCount = set.cards.filter((c) => isUsed(c.id)).length;
+  const card = document.createElement("div");
+  card.className = "set-card";
+  if (set.accent) card.style.setProperty("--set-accent", set.accent);
+  const thumbStyle = set.image ? `style="background-image:url('${set.image}')"` : "";
+  const thumbInner = set.image ? "" : (set.emoji || "💬");
+  const meta = `${n} kort${usedCount ? ` · <b>${usedCount} brugt</b>` : ""}`;
+  card.innerHTML = `
+    <button class="set-open" aria-label="Åbn ${escapeHtml(set.title)}"></button>
+    <div class="set-thumb" ${thumbStyle}>${thumbInner}</div>
+    <div class="set-body">
+      <h2>${escapeHtml(set.title)}</h2>
+      ${set.description ? `<p>${escapeHtml(set.description)}</p>` : ""}
+      <span class="set-meta-line">${meta}</span>
+    </div>
+    <button class="set-shuffle" aria-label="Tilfældigt kort fra ${escapeHtml(set.title)}" title="Tilfældigt kort">?</button>`;
+  card.querySelector(".set-open").addEventListener("click", () => openSet(i));
+  card.querySelector(".set-shuffle").addEventListener("click", (ev) => { ev.stopPropagation(); openSetRandom(i); });
+  return card;
+}
+
+// Flad visning: alle kategorier under hinanden (som før temaerne kom til).
+function renderFlat() {
   const grid = $("setGrid");
   grid.innerHTML = "";
-  DATA.sets.forEach((set, i) => {
-    const n = set.cards.length;
-    const usedCount = set.cards.filter((c) => isUsed(c.id)).length;
-    const card = document.createElement("div");
-    card.className = "set-card";
-    if (set.accent) card.style.setProperty("--set-accent", set.accent);
-    const thumbStyle = set.image ? `style="background-image:url('${set.image}')"` : "";
-    const thumbInner = set.image ? "" : (set.emoji || "💬");
-    const meta = `${n} kort${usedCount ? ` · <b>${usedCount} brugt</b>` : ""}`;
-    card.innerHTML = `
-      <button class="set-open" aria-label="Åbn ${escapeHtml(set.title)}"></button>
-      <div class="set-thumb" ${thumbStyle}>${thumbInner}</div>
-      <div class="set-body">
-        <h2>${escapeHtml(set.title)}</h2>
-        ${set.description ? `<p>${escapeHtml(set.description)}</p>` : ""}
-        <span class="set-meta-line">${meta}</span>
-      </div>
-      <button class="set-shuffle" aria-label="Tilfældigt kort fra ${escapeHtml(set.title)}" title="Tilfældigt kort">?</button>`;
-    card.querySelector(".set-open").addEventListener("click", () => openSet(i));
-    card.querySelector(".set-shuffle").addEventListener("click", (ev) => { ev.stopPropagation(); openSetRandom(i); });
-    grid.appendChild(card);
+  DATA.sets.forEach((set, i) => grid.appendChild(renderSetCard(set, i)));
+}
+
+// Er et tema foldet ud? Uden en gemt beslutning: kun temaet med "Fortsæt her".
+function temaIsOpen(groupId) {
+  if (groupId in opt.groupState) return !!opt.groupState[groupId];
+  const rs = opt.last ? DATA.sets.find((s) => s.id === opt.last.setId) : null;
+  return !!rs && rs.group === groupId;
+}
+
+const TEMA_CHEV = '<svg class="tema-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
+// Tema-visning: foldbare grupper med deres kategorier tydeligt indeni.
+function renderTemaer() {
+  const host = $("temaSections");
+  host.innerHTML = "";
+  // Fordel kategorierne på deres tema i ét gennemløb (behold DATA-rækkefølge).
+  const buckets = {};
+  DATA.sets.forEach((s, i) => { (buckets[s.group] || (buckets[s.group] = [])).push({ set: s, i: i }); });
+  GROUPS.forEach((g) => {
+    const members = buckets[g.id];
+    if (!members || !members.length) return;
+
+    const open = temaIsOpen(g.id);
+    const wrap = document.createElement("div");
+    wrap.className = "tema" + (open ? " open" : "");
+    wrap.style.setProperty("--tema-accent", g.accent);
+
+    const bodyId = "tema-body-" + g.id;
+    const head = document.createElement("button");
+    head.type = "button";
+    head.className = "tema-head";
+    head.setAttribute("aria-expanded", open ? "true" : "false");
+    head.setAttribute("aria-controls", bodyId);
+    head.innerHTML =
+      '<span class="tema-dot"></span>' +
+      "<h2>" + escapeHtml(g.label) + "</h2>" +
+      '<span class="tema-count">' + members.length + " kategorier</span>" +
+      TEMA_CHEV;
+
+    const body = document.createElement("div");
+    body.className = "tema-body";
+    body.id = bodyId;
+    if (!open) body.hidden = true;
+    const label = document.createElement("p");
+    label.className = "tema-body-label";
+    label.textContent = members.length + " kategorier i " + g.label;
+    const rail = document.createElement("div");
+    rail.className = "tema-rail";
+    members.forEach((m) => rail.appendChild(renderSetCard(m.set, m.i)));
+    body.appendChild(label);
+    body.appendChild(rail);
+
+    head.addEventListener("click", () => {
+      const nowOpen = head.getAttribute("aria-expanded") !== "true";
+      head.setAttribute("aria-expanded", nowOpen ? "true" : "false");
+      wrap.classList.toggle("open", nowOpen);
+      body.hidden = !nowOpen;
+      opt.groupState[g.id] = nowOpen;
+      saveOpt();
+    });
+
+    wrap.appendChild(head);
+    wrap.appendChild(body);
+    host.appendChild(wrap);
   });
-  $("versionLabel").textContent = "Version " + APP_VERSION + (memoryOK ? "" : " · (hukommelse er slået fra i forhåndsvisning)");
+}
+
+function syncViewToggle() {
+  const t = opt.homeView !== "alle";
+  $("viewTemaerBtn").setAttribute("aria-pressed", t ? "true" : "false");
+  $("viewAlleBtn").setAttribute("aria-pressed", t ? "false" : "true");
+}
+function setHomeView(view) {
+  opt.homeView = view === "alle" ? "alle" : "temaer";
+  saveOpt();
+  renderHome();
 }
 
 function updateFavBtn() {
@@ -1297,7 +1464,7 @@ function buildDeck(keepId) {
 }
 
 function enterDeck(title) {
-  // Banneret sidder i bunden — præcis oven på ‹ og › inde i et tema.
+  // Banneret sidder i bunden — præcis oven på ‹ og › inde i en kategori.
   // Beskeder hører hjemme på forsiden, så luk det, når vi går ind i bunken.
   hideBanner();
   $("homeScreen").classList.add("hidden");
@@ -1419,12 +1586,12 @@ function onUsedClick(card, el, btn) {
   if (!(nowUsed && el === $("stage").querySelector(".card"))) return;
 
   // Alt herunder sker på en forsinkelse. Når den udløber, kan brugeren for
-  // længst have trykket "‹ Sæt" eller skiftet tema — så husk hvilket dæk vi
+  // længst have trykket "‹ Forsiden" eller skiftet kategori — så husk hvilket dæk vi
   // var i, og lad være med at røre skærmen, hvis vi ikke er der længere.
   const src = state.source, si = state.setIndex;
   const stadigHer = () => state.source === src;
 
-  // Fejring når hele sættet er gennemført
+  // Fejring når hele kategorien er gennemført
   if (src.type === "set" && DATA.sets[si].cards.every((c) => isUsed(c.id))) {
     setTimeout(() => { if (stadigHer()) celebrate(si); }, 260);
     return;
@@ -1450,7 +1617,7 @@ function renderEmpty() {
   if (state.source && state.source.type === "fav") {
     msg = "Ingen favoritter endnu.\nTryk på ♡ på et kort for at gemme det her.";
   } else if (onlyUnused) {
-    msg = "Alle kort i temaet er brugt 🎉"; label = "Vis alle igen"; fn = () => setOnlyUnused(false);
+    msg = "Alle kort i kategorien er brugt 🎉"; label = "Vis alle igen"; fn = () => setOnlyUnused(false);
   }
   const el = document.createElement("div");
   el.className = "card no-img";
@@ -1570,7 +1737,7 @@ function animateToIndex(targetIndex) {
   ghost.style.transform = "translateX(0px)";
   setTimeout(() => {
     // busy skal ALTID slippes igen. Gør den ikke det, står ‹ ›, prikkerne,
-    // 🎲, piletasterne og swipe af — også i alle andre temaer bagefter.
+    // 🎲, piletasterne og swipe af — også i alle andre kategorier bagefter.
     try {
       state.cardIndex = targetIndex;
       renderCard(goingNext ? "right" : "left", false); // sæt det nye kort statisk på plads
@@ -1608,7 +1775,7 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-/* ---- Tema (auto/lys/mørk) ---- */
+/* ---- Udseende (auto/lys/mørk) ---- */
 function systemDark() { try { return matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { return false; } }
 function isDark() { return opt.theme === "dark" || (opt.theme === "auto" && systemDark()); }
 function applyTheme() {
@@ -1617,7 +1784,7 @@ function applyTheme() {
   const tc = document.querySelector('meta[name="theme-color"]');
   if (tc) tc.setAttribute("content", dark ? "#241d29" : "#ffcbb0");
   const label = opt.theme === "auto" ? "Auto" : (opt.theme === "dark" ? "Mørk" : "Lys");
-  if ($("themeBtn")) $("themeBtn").textContent = "Tema: " + label;
+  if ($("themeBtn")) $("themeBtn").textContent = "Udseende: " + label;
 }
 function cycleTheme() {
   opt.theme = opt.theme === "auto" ? "light" : (opt.theme === "light" ? "dark" : "auto");
@@ -1632,7 +1799,7 @@ function haptic() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (
    En lukket dialog skal være HELT væk — ikke bare usynlig. Uden
    'inert' bliver knapperne i den liggende i tabulator-rækkefølgen
    og i skærmlæserens træ, og så kan man komme til at trykke på
-   "Nulstil sættet", man ikke kan se. (visibility duer ikke: den
+   "Nulstil kategorien", man ikke kan se. (visibility duer ikke: den
    hænger fast på "visible" på grund af overgangen.) */
 function visOverlay(el, vis) {
   el.classList.toggle("show", vis);
@@ -1656,14 +1823,13 @@ function closeConfirm() { visOverlay($("confirmBackdrop"), false); visOverlay($(
 /* ---- Om-skærm ---- */
 function openAbout() {
   const sets = DATA.sets.length;
-  const cards = DATA.sets.reduce((n, s) => n + s.cards.length, 0);
-  $("aboutText").textContent = "En Meanwhile-app til gode samtaler.\n" + sets + " sæt · " + cards + " kort · version " + APP_VERSION + buildSuffix();
+  $("aboutText").textContent = "En Meanwhile-app til gode samtaler.\n" + GROUPS.length + " temaer · " + sets + " kategorier · " + totalCards() + " kort · version " + APP_VERSION + buildSuffix();
   visOverlay($("aboutBackdrop"), true); visOverlay($("about"), true);
   focusModal($("about"));
 }
 function closeAbout() { visOverlay($("aboutBackdrop"), false); visOverlay($("about"), false); }
 
-/* ---- Fejring når et sæt er gennemført ---- */
+/* ---- Fejring når en kategori er gennemført ---- */
 function celebrate(setIndex) {
   $("celebrateText").textContent = "I har været igennem alle kort i “" + DATA.sets[setIndex].title + "”.";
   visOverlay($("celebrateBackdrop"), true); visOverlay($("celebrate"), true);
@@ -1733,9 +1899,11 @@ $("nextBtn").addEventListener("click", goNext);
 $("prevBtn").addEventListener("click", goPrev);
 $("backBtn").addEventListener("click", goHome);
 $("nextUnusedBtn").addEventListener("click", nextUnused);
-$("resetSetBtn").addEventListener("click", () => askConfirm("Nulstil alle brugte kort i dette tema?", resetSet));
-$("resetAllBtn").addEventListener("click", () => askConfirm("Nulstil brugte kort i ALLE temaer?", resetAll));
+$("resetSetBtn").addEventListener("click", () => askConfirm("Nulstil alle brugte kort i denne kategori?", resetSet));
+$("resetAllBtn").addEventListener("click", () => askConfirm("Nulstil brugte kort i ALLE kategorier?", resetAll));
 $("favBtn").addEventListener("click", openFavorites);
+$("viewTemaerBtn").addEventListener("click", () => setHomeView("temaer"));
+$("viewAlleBtn").addEventListener("click", () => setHomeView("alle"));
 $("shuffleBtn").addEventListener("click", shuffleDraw);
 $("onlyUnusedBtn").addEventListener("click", () => setOnlyUnused(!onlyUnused));
 $("themeBtn").addEventListener("click", cycleTheme);
@@ -1799,7 +1967,7 @@ function cardAccent(card) {
   const owner = DATA.sets.find((s) => s.cards.some((c) => c.id === card.id));
   return owner ? owner.accent : "#ffe0cc";
 }
-/* Første synlige kort i et sæt (respekterer "kun ubrugte") */
+/* Første synlige kort i en kategori (respekterer "kun ubrugte") */
 function firstVisibleCardOfSet(i) {
   let cards = DATA.sets[i].cards;
   if (onlyUnused) { const u = cards.filter((c) => !isUsed(c.id)); if (u.length) cards = u; }
@@ -1825,7 +1993,7 @@ function makeGhostCard(card, idx, total, accent) {
     <button class="card-used-btn" tabindex="-1">${used ? "✓ Brugt — fortryd" : "Markér som brugt"}</button>`;
   return el;
 }
-/* Skift til et andet sæt (uden vandret ind-animation) */
+/* Skift til en anden kategori (uden vandret ind-animation) */
 function goToSet(i) {
   state.setIndex = i;
   state.source = { type: "set", index: i };
@@ -1838,7 +2006,7 @@ function goToSet(i) {
   renderDeck(false, "right");
 }
 
-/* ---- Swipe: vandret = skift kort, lodret = skift sæt; nabo peeker ind ---- */
+/* ---- Swipe: vandret = skift kort, lodret = skift kategori; nabo peeker ind ---- */
 (function () {
   const stage = $("stage");
   const GAP = 14;
@@ -1860,7 +2028,7 @@ function goToSet(i) {
       ghost = makeGhostCard(c, idx, total, cardAccent(c));
       ghostReset = "translateX(" + (dir < 0 ? (W + GAP) : -(W + GAP)) + "px)";
     } else {
-      if (!state.source || state.source.type !== "set") return;  // sæt-skift kun i sæt-tilstand
+      if (!state.source || state.source.type !== "set") return;  // kategori-skift kun i kategori-tilstand
       const N = DATA.sets.length;
       if (N < 2) return;
       const t = dir < 0 ? (state.setIndex + 1) % N : (state.setIndex - 1 + N) % N;
@@ -2071,7 +2239,7 @@ function applyUpdateIfIdle(force) {
   return true;
 }
 
-// Er der ikke ro lige nu (midt i et tema, en dialog åben), så kigger vi
+// Er der ikke ro lige nu (midt i en kategori, en dialog åben), så kigger vi
 // stille forbi med jævne mellemrum, til der er. Timeren kører kun, mens
 // en opdatering venter.
 let quietTimer = null;
