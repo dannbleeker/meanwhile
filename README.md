@@ -43,6 +43,32 @@ Behold `id`'erne stabile over versioner — de bruges til at huske "brugt"-statu
 Brugte kort gemmes lokalt i `localStorage` på enheden og nulstilles inde i
 appen (pr. tema eller for alle).
 
+### Færdige kort forbliver færdige — også efter en opdatering
+
+"Brugt/færdig"-status huskes pr. kort-`id`. Så længe et kort beholder sit `id`,
+overlever dets status enhver opdatering (en opdatering rører kun appens
+filcacher, aldrig `localStorage`). Det hele står og falder derfor med, at
+`id`'erne er stabile — og det overlades ikke til hukommelsen:
+
+- `scripts/check-ids.mjs` fejler, hvis to kort deler `id` (så ville status smitte
+  mellem dem), eller hvis et `id`, der er sendt ud før, forsvinder eller bliver
+  omdøbt (så ville kortet miste sin historik).
+- Tjekket kører i CI på hver PR og hvert push til `main`
+  ([`check-ids.yml`](.github/workflows/check-ids.yml)) og igen som en spærre
+  lige før udgivelsen ([`pages.yml`](.github/workflows/pages.yml)) — en id-fejl
+  når aldrig ud til nogen.
+- `scripts/known-card-ids.json` er hovedbogen over id'er, vi har sendt ud.
+
+Nye kort må du tilføje frit — nye `id`'er fejler aldrig. Retter du kun teksten
+på et kort, så behold `id`'et. **Pensionerer** du bevidst et kort (fjerner
+`id`'et helt), så bekræft det med:
+
+```bash
+node scripts/check-ids.mjs --write   # opdaterer hovedbogen og committer den
+```
+
+Lokalt advarer appen dig også i konsollen, hvis to kort deler `id`.
+
 ## Udgiv en ny version
 
 **Ret og push — resten sker af sig selv.**

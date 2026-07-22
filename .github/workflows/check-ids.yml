@@ -1,0 +1,22 @@
+name: Check card-id stability
+# Vogter over, at "brugt/færdig"-status overlever opdateringer. Status huskes
+# pr. kort-id, så et id, der får en dublet eller forsvinder, koster brugerne
+# deres historik. Kører på PR'er og på main, så en id-fejl aldrig når ud.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-ids:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Tjek kort-id'ernes stabilitet
+        run: node scripts/check-ids.mjs
