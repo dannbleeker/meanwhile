@@ -99,7 +99,11 @@ self.addEventListener("activate", (e) => {
 
 /* ---- Beskeder fra siden ---- */
 self.addEventListener("message", (e) => {
-  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
+  const data = e.data || {};
+  if (data.type === "SKIP_WAITING") self.skipWaiting();
+  // Siden spørger, hvilket build der styrer den nu — den bruger svaret til at
+  // lade være med at genindlæse til den version, den allerede kører.
+  if (data.type === "GET_BUILD" && e.source) e.source.postMessage({ type: "BUILD", build: BUILD });
 });
 
 /* ---- Hent ------------------------------------------------------
