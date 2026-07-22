@@ -441,12 +441,12 @@
         <h1 id="homeTitle"></h1>
         <p id="homeSub"></p>
       </div>
-      <div class="view-toggle" id="homeViewToggle" role="group" aria-label="Visning">
-        <button type="button" id="viewTemaerBtn" aria-pressed="true">Temaer</button>
-        <button type="button" id="viewAlleBtn" aria-pressed="false">Alle kategorier</button>
+      <div class="view-toggle" id="homeViewToggle" role="tablist" aria-label="Visning">
+        <button type="button" id="viewTemaerBtn" role="tab" aria-selected="true" aria-controls="temaSections">Temaer</button>
+        <button type="button" id="viewAlleBtn" role="tab" aria-selected="false" aria-controls="setGrid" tabindex="-1">Alle kategorier</button>
       </div>
-      <div class="tema-sections" id="temaSections"></div>
-      <div class="set-grid" id="setGrid"></div>
+      <div class="tema-sections" id="temaSections" role="tabpanel" aria-labelledby="viewTemaerBtn"></div>
+      <div class="set-grid" id="setGrid" role="tabpanel" aria-labelledby="viewAlleBtn"></div>
       <div class="home-actions">
         <button class="pill-btn" id="resumeBtn" style="display:none"></button>
         <button class="pill-btn" id="favBtn">♥ Favoritter</button>
@@ -1390,6 +1390,14 @@ function renderTemaer() {
     const members = buckets[g.id];
     if (!members || !members.length) return;
 
+    // Samlet fremdrift for temaet: hvor mange kort er brugt på tværs af dets
+    // kategorier. Vises kun, når mindst ét kort er brugt.
+    let temaTotal = 0, temaUsed = 0;
+    members.forEach((m) => {
+      temaTotal += m.set.cards.length;
+      temaUsed += m.set.cards.filter((c) => isUsed(c.id)).length;
+    });
+
     const open = temaIsOpen(g.id);
     const wrap = document.createElement("div");
     wrap.className = "tema" + (open ? " open" : "");
@@ -1404,7 +1412,8 @@ function renderTemaer() {
     head.innerHTML =
       '<span class="tema-dot"></span>' +
       "<h2>" + escapeHtml(g.label) + "</h2>" +
-      '<span class="tema-count">' + members.length + " kategorier</span>" +
+      '<span class="tema-count">' + members.length + " kategorier" +
+        (temaUsed ? " · " + temaUsed + "/" + temaTotal + " brugt" : "") + "</span>" +
       TEMA_CHEV;
 
     const body = document.createElement("div");
@@ -1437,8 +1446,12 @@ function renderTemaer() {
 
 function syncViewToggle() {
   const t = opt.homeView !== "alle";
-  $("viewTemaerBtn").setAttribute("aria-pressed", t ? "true" : "false");
-  $("viewAlleBtn").setAttribute("aria-pressed", t ? "false" : "true");
+  // Fanebladene (tablist): det valgte er markeret og eneste i tabulator-rækken;
+  // pilene flytter mellem dem (se keydown-lytteren nederst).
+  $("viewTemaerBtn").setAttribute("aria-selected", t ? "true" : "false");
+  $("viewAlleBtn").setAttribute("aria-selected", t ? "false" : "true");
+  $("viewTemaerBtn").tabIndex = t ? 0 : -1;
+  $("viewAlleBtn").tabIndex = t ? -1 : 0;
 }
 function setHomeView(view) {
   opt.homeView = view === "alle" ? "alle" : "temaer";
@@ -1489,6 +1502,7 @@ function openSet(i, startId) {
   state.source = { type: "set", index: i };
   buildDeck(startId);
   enterDeck(DATA.sets[i].title);
+  setRouteHash("#/k/" + encodeURIComponent(DATA.sets[i].id));
 }
 function openSetRandom(i) {
   const set = DATA.sets[i];
@@ -1502,6 +1516,7 @@ function openFavorites() {
   state.setIndex = null;
   buildDeck();
   enterDeck("♥ Favoritter");
+  setRouteHash("#/fav");
 }
 
 function goHome() {
@@ -1512,10 +1527,39 @@ function goHome() {
   $("homeScreen").classList.remove("hidden");
   $("backBtn").style.display = "none";
   $("menuBtn").style.display = "none";
+  // Ryd adressen til forsiden UDEN at lave en ny historik-post (replaceState),
+  // så browserens tilbage-knap ikke bare fører herind igen.
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
   renderHome();
   // Forsiden er et roligt øjeblik — hvis en ny version står klar,
   // skifter vi til den her (usynligt for brugeren).
   applyUpdateIfIdle();
+}
+
+/* ---- Adresse-ruter: del et link direkte til en kategori ----------
+   #/k/<kategori-id> åbner en kategori, #/fav åbner favoritter, alt
+   andet er forsiden. Kun ÅBNING skubber en historik-post, så browserens
+   tilbage-knap fører tilbage til forsiden. applyRoute er idempotent:
+   den gør intet, hvis vi allerede viser det, adressen peger på — så en
+   adresse sat af os selv ikke starter en løkke. */
+function setRouteHash(h) {
+  if (location.hash !== h) location.hash = h;
+}
+function applyRoute() {
+  const h = location.hash;
+  const mk = h.match(/^#\/k\/(.+)$/);
+  if (mk) {
+    const i = setIndexById(decodeURIComponent(mk[1]));
+    if (i < 0) { goHome(); return; }
+    const showing = state.source && state.source.type === "set" && state.setIndex === i && $("deckScreen").classList.contains("active");
+    if (!showing) openSet(i);
+    return;
+  }
+  if (h === "#/fav") {
+    if (!(state.source && state.source.type === "fav")) openFavorites();
+    return;
+  }
+  if (state.source) goHome();   // tom/ukendt adresse = forside
 }
 
 // Bygger et kort-element for et givet index i dækket (uden ind-animation)
@@ -1907,6 +1951,16 @@ $("resetAllBtn").addEventListener("click", () => askConfirm("Nulstil brugte kort
 $("favBtn").addEventListener("click", openFavorites);
 $("viewTemaerBtn").addEventListener("click", () => setHomeView("temaer"));
 $("viewAlleBtn").addEventListener("click", () => setHomeView("alle"));
+// Fanebladene: piletaster flytter valget (roving-fokus), som WAI-ARIA foreskriver.
+$("homeViewToggle").addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return;
+  e.preventDefault();
+  const temaer = e.key === "ArrowLeft" || e.key === "Home";
+  setHomeView(temaer ? "temaer" : "alle");
+  (temaer ? $("viewTemaerBtn") : $("viewAlleBtn")).focus();
+});
+// Adresse-ruter: reagér på delte links og browserens frem/tilbage.
+window.addEventListener("hashchange", applyRoute);
 $("shuffleBtn").addEventListener("click", shuffleDraw);
 $("onlyUnusedBtn").addEventListener("click", () => setOnlyUnused(!onlyUnused));
 $("themeBtn").addEventListener("click", cycleTheme);
@@ -2007,6 +2061,7 @@ function goToSet(i) {
   $("nextUnusedBtn").style.display = "";
   syncOnlyUnusedBtn();
   renderDeck(false, "right");
+  setRouteHash("#/k/" + encodeURIComponent(DATA.sets[i].id));
 }
 
 /* ---- Swipe: vandret = skift kort, lodret = skift kategori; nabo peeker ind ---- */
@@ -2385,6 +2440,8 @@ try {
 } catch (e) {}
 renderHome();
 announceUpdate();
+// Åbn en delt/bogmærket kategori med det samme (fx .../#/k/fremtid).
+applyRoute();
 
 /* ---- Splash: vis kort, ton blødt væk efter en fast varighed ---- */
 (function initSplash() {
