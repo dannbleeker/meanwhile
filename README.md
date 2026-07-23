@@ -1,6 +1,7 @@
 # Meanwhile — Samtalekort
 
-En lille, installerbar web-app (PWA) med samtalekort til par. Forsiden grupperer
+En lille, installerbar web-app (PWA) med samtalekort — til par, til familien,
+til venner, til børn ned til fire år og til de svære stunder. Forsiden grupperer
 kortene i **temaer** og **kategorier**; man vælger en kategori og bladrer gennem
 kortene ét ad gangen. Appen husker, hvilke kort der er brugt, virker offline og
 opdaterer sig selv, uden at nogen mister noget.

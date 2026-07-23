@@ -352,7 +352,9 @@
   .modal-btn.danger { background: #e5484d; color: #fff; }
   .modal-btn + .modal-btn { margin-top: 10px; }
   .modal-big { font-size: 40px; text-align: center; margin-bottom: 6px; }
-  .modal-text { text-align: center; color: var(--ink-soft); font-weight: 600; font-size: 15px; margin-bottom: 18px; line-height: 1.4; }
+  /* pre-line: teksten sættes med \n (fx "En Meanwhile-app …\n27 temaer · …"),
+     og uden det ryger linjeskiftet, så alt står i én lang linje. */
+  .modal-text { text-align: center; color: var(--ink-soft); font-weight: 600; font-size: 15px; margin-bottom: 18px; line-height: 1.4; white-space: pre-line; }
 
   /* Skærmlæser-kun tekst */
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -415,7 +417,12 @@
 
   /* ---------- Update / install banner ---------- */
   .banner {
-    position: fixed; left: 50%; transform: translateX(-50%) translateY(140%);
+    /* Skjult skal banneret HELT væk. translateY(140%) er ikke nok: elementet
+       sidder 16px + safe-area over kanten, så på en iPhone med hjemmeindikator
+       (34px) blev de øverste ~22px af banneret stående inde på skærmen som en
+       hvid stribe. Skub det sin egen fulde højde PLUS afstanden ned til kanten. */
+    position: fixed; left: 50%;
+    transform: translateX(-50%) translateY(calc(100% + 16px + env(safe-area-inset-bottom) + 12px));
     bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 50;
     width: min(560px, calc(100% - 32px));
     background: #fff; box-shadow: var(--shadow); border-radius: 18px;
@@ -1930,12 +1937,18 @@ function visOverlay(el, vis) {
   // ryger fokus til <body>, hver gang en dialog lukkes, og man skal tabulere
   // hele vejen ned til den knap, man kom fra.
   if (vis) el.__aabner = document.activeElement;
+  // Var fokus herinde, LIGE FØR vi lukker? (inert nedenfor flytter selv fokus
+  // ud af elementet, så vi kan ikke spørge bagefter.)
+  const havdeFokus = !vis && el.contains(document.activeElement);
   el.classList.toggle("show", vis);
   el.inert = !vis;
   if (!vis) {
     const a = el.__aabner;
     el.__aabner = null;
-    if (a && a !== document.body && document.contains(a) && !(a.closest && a.closest("[inert]"))) {
+    // Giv kun fokus tilbage, hvis fokus faktisk stod herinde. Ellers ville et
+    // banner, der timer ud, mens en dialog er åben, rive fokus ud af dialogen.
+    if (havdeFokus && a && a !== document.body && document.contains(a)
+        && !(a.closest && a.closest("[inert]"))) {
       try { a.focus({ preventScroll: true }); } catch (e) {}
     }
   }
@@ -2177,9 +2190,13 @@ function goToSet(i) {
       ghostReset = "translateX(" + (dir < 0 ? (W + GAP) : -(W + GAP)) + "px)";
     } else {
       if (!state.source || state.source.type !== "set") return;  // kategori-skift kun i kategori-tilstand
-      const N = DATA.sets.length;
-      if (N < 2) return;
-      const t = dir < 0 ? (state.setIndex + 1) % N : (state.setIndex - 1 + N) % N;
+      // Bliv inden for SAMME tema. Ellers kunne et lodret stryg i et børnesæt
+      // lande i nabokategorien i data — som for "De mindste" er "Intimitet & sex".
+      const grp = DATA.sets[state.setIndex].group;
+      const sib = DATA.sets.reduce((a, s, i) => (s.group === grp ? a.concat(i) : a), []);
+      if (sib.length < 2) return;
+      const pos = sib.indexOf(state.setIndex);
+      const t = dir < 0 ? sib[(pos + 1) % sib.length] : sib[(pos - 1 + sib.length) % sib.length];
       setTargetIdx = t;
       const fv = firstVisibleCardOfSet(t);
       ghost = makeGhostCard(fv.card, 0, fv.total, DATA.sets[t].accent);
